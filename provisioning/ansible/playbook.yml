@@ -1,0 +1,158 @@
+# Ansible playbook for configuring Windows 11 Pro clients
+# This playbook applies enterprise-ready configuration management to Windows systems
+# It complements the PowerShell provisioning by providing structured configuration management
+
+---
+# Main play for Windows client configuration
+# This play targets all hosts and applies the common role for baseline configuration
+- name: Configure Windows Client
+  # Target all hosts that Packer makes available during the build process
+  hosts: all
+  
+  # Gather system information for conditional task execution
+  # This collects facts about the target system for use in tasks and templates
+  gather_facts: yes
+  
+  # Use become (privilege escalation) for tasks that require administrative access
+  # On Windows, this typically means running tasks with elevated permissions
+  become: yes
+  become_method: runas
+  
+  # Define variables that can be used throughout the playbook
+  # These provide configuration values and can be overridden as needed
+  vars:
+    # Application installation settings
+    install_development_tools: false
+    install_security_tools: true
+    
+    # System configuration settings
+    configure_windows_updates: true
+    enable_windows_features: true
+    
+    # Security hardening settings
+    apply_security_baseline: true
+    configure_firewall: true
+    
+    # Performance optimization settings
+    optimize_performance: true
+    cleanup_temp_files: true
+
+  # Pre-tasks run before role execution
+  # These ensure the system is ready for configuration management
+  pre_tasks:
+    # Display system information for troubleshooting and verification
+    - name: Display system information
+      debug:
+        msg: 
+          - "Operating System: {{ ansible_os_name }}"
+          - "OS Version: {{ ansible_os_version }}"
+          - "Architecture: {{ ansible_architecture }}"
+          - "Hostname: {{ ansible_hostname }}"
+          - "Domain: {{ ansible_domain | default('Not domain-joined') }}"
+      tags: ['info']
+    
+    # Ensure PowerShell execution policy allows script execution
+    # This is critical for Ansible to manage Windows systems effectively
+    - name: Set PowerShell execution policy
+      win_shell: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force
+      tags: ['setup']
+    
+    # Update Windows PowerShell modules to latest versions
+    # This ensures compatibility with Ansible modules
+    - name: Update PowerShell modules
+      win_psmodule:
+        name: "{{ item }}"
+        state: latest
+      loop:
+        - PowerShellGet
+        - PackageManagement
+      tags: ['setup']
+
+  # Apply the common role that contains the main configuration logic
+  # Roles provide a way to organize related tasks, variables, and templates
+  roles:
+    # The common role contains baseline configuration for all Windows systems
+    # This role should be created in the roles/common directory structure
+    - role: common
+      tags: ['common']
+
+  # Post-tasks run after role execution
+  # These perform final system preparation and validation
+  post_tasks:
+    # Validate that critical services are running
+    - name: Ensure critical Windows services are running
+      win_service:
+        name: "{{ item }}"
+        state: started
+        start_mode: auto
+      loop:
+        - Winmgmt          # Windows Management Instrumentation
+        - EventLog         # Windows Event Log
+        - Schedule         # Task Scheduler
+        - LanmanServer     # Server service for file sharing
+        - LanmanWorkstation # Workstation service for network access
+      tags: ['validation']
+    
+    # Check Windows Update service status
+    - name: Verify Windows Update service
+      win_service:
+        name: wuauserv
+        state: started
+      tags: ['validation']
+    
+    # Generate system configuration report
+    - name: Generate system configuration summary
+      win_shell: |
+        $info = @{
+          'ComputerName' = $env:COMPUTERNAME
+          'OS' = (Get-CimInstance Win32_OperatingSystem).Caption
+          'Version' = (Get-CimInstance Win32_OperatingSystem).Version
+          'LastBootTime' = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+          'TotalMemory' = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB, 2)
+          'FreeSpace' = [math]::Round((Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'").FreeSpace/1GB, 2)
+        }
+        $info | ConvertTo-Json
+      register: system_summary
+      tags: ['report']
+    
+    # Display the system configuration summary
+    - name: Show system configuration summary
+      debug:
+        msg: "System Summary: {{ system_summary.stdout | from_json }}"
+      tags: ['report']
+    
+    # Final cleanup and preparation for image capture
+    - name: Prepare system for image capture
+      win_shell: |
+        # Clear PowerShell history
+        Remove-Item (Get-PSReadlineOption).HistorySavePath -ErrorAction SilentlyContinue
+        
+        # Clear event logs (optional)
+        # Get-WinEvent -ListLog * | ForEach-Object { Clear-WinEvent -LogName $_.LogName -ErrorAction SilentlyContinue }
+        
+        # Clear temporary files
+        Remove-Item -Path "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
+        
+        Write-Output "System prepared for image capture"
+      tags: ['cleanup']
+
+# Additional plays can be added here for specific configurations
+# For example, you might have separate plays for different server roles
+
+# Example: Domain-specific configuration (uncomment if needed)
+# - name: Configure Domain-Joined Systems
+#   hosts: domain_systems
+#   gather_facts: yes
+#   become: yes
+#   roles:
+#     - role: domain_config
+#   tags: ['domain']
+
+# Example: Development workstation configuration (uncomment if needed)
+# - name: Configure Development Workstations
+#   hosts: dev_workstations
+#   gather_facts: yes
+#   become: yes
+#   roles:
+#     - role: development_tools
+#   tags: ['development']
