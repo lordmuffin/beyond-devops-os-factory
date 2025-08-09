@@ -253,10 +253,23 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: linux/amd64
+      - name: Setup QEMU/KVM
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qemu-system-x86 \
+            qemu-utils \
+            libvirt-daemon-system \
+            libvirt-clients \
+            bridge-utils \
+            cpu-checker
+          
+          # Enable KVM acceleration if available
+          sudo modprobe kvm
+          sudo chmod 666 /dev/kvm || echo "KVM not available, falling back to software emulation"
+          
+          # Verify QEMU installation
+          qemu-system-x86_64 --version
 
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
