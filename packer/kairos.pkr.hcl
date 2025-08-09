@@ -105,10 +105,10 @@ source "qemu" "kairos_iso" {
 
   # Headless mode for CI/CD environments
   headless = true
-  
+
   # Display configuration for headless mode
   display = "none"
-  
+
   # QEMU arguments for headless operation
   qemuargs = [
     ["-display", "none"],
