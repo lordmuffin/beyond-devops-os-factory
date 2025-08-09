@@ -195,7 +195,7 @@ jobs:
           echo "  - Kairos version: ${{ env.KAIROS_VERSION }}"
           
           packer build \
-            -only='kairos-container-build' \
+            -only='kairos-container-build.docker.kairos_custom' \
             -var="base_distribution=${{ matrix.base_distribution }}" \
             -var="k8s_distribution=${{ matrix.k8s_distribution }}" \
             -var="kairos_version=${{ env.KAIROS_VERSION }}" \
@@ -304,7 +304,7 @@ jobs:
           echo "  - CPUs: 4"
           
           packer build \
-            -only='kairos-iso-build' \
+            -only='kairos-iso-build.qemu.kairos_iso' \
             -var="base_distribution=${{ matrix.base_distribution }}" \
             -var="k8s_distribution=${{ matrix.k8s_distribution }}" \
             -var="kairos_version=${{ env.KAIROS_VERSION }}" \
