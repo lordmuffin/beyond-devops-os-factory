@@ -8,12 +8,12 @@ packer {
     # QEMU plugin for virtualization-based image building
     qemu = {
       source  = "github.com/hashicorp/qemu"
-      version = "~> 1"
+      version = ">= 1.0.0"
     }
     # Ansible plugin for configuration management
     ansible = {
       source  = "github.com/hashicorp/ansible"
-      version = "~> 1"
+      version = ">= 1.0.0"
     }
   }
 }

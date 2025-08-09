@@ -55,27 +55,57 @@ jobs:
       - name: Setup Packer
         uses: hashicorp/setup-packer@main
 
+      # Step 3.5: Install Ansible (required by Packer Ansible provisioner)
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+          ansible --version
+
       # Step 4: Cache Packer plugins to speed up subsequent runs
       # This prevents re-downloading plugins on every workflow run
       - name: Cache Packer Plugins
         uses: actions/cache@v4
         with:
-          path: ~/.packer.d/plugins
+          path: |
+            ~/.packer.d/plugins
+            ~/.config/packer/plugins
           key: ${{ runner.os }}-packer-plugins-${{ hashFiles('packer/*.pkr.hcl') }}
           restore-keys: |
             ${{ runner.os }}-packer-plugins-
 
       # Step 5: Initialize Packer and install required plugins
       - name: Packer Init
+        working-directory: packer
         run: |
-          cd packer
-          packer init .
+          echo "Initializing Packer plugins..."
+          echo "Current directory: $(pwd)"
+          echo "Packer version: $(packer version)"
+          echo "Contents of current directory:"
+          ls -la
+          echo "Checking Packer configuration syntax first..."
+          packer validate . || echo "Initial validation failed, continuing with init..."
+          echo "Running packer init..."
+          if ! packer init .; then
+            echo "Packer init failed, showing detailed error"
+            packer init -debug .
+            exit 1
+          fi
+          echo "Packer init completed successfully"
+          echo "Checking plugin installation..."
+          find ~ -name "*packer*" -type d 2>/dev/null || echo "No packer directories found"
+          echo "Looking for installed plugins..."
+          ls -la ~/.packer.d/ || echo "No ~/.packer.d/ directory found"
+          ls -la ~/.packer.d/plugins/ || echo "No plugins directory found"
+          ls -la ~/.config/packer/ || echo "No ~/.config/packer/ directory found"
 
       # Step 6: Validate Packer configuration for syntax errors
       - name: Packer Validate
+        working-directory: packer
         run: |
-          cd packer
+          echo "Validating Packer configuration..."
           packer validate .
+          echo "Packer validation completed successfully"
 
       # Step 7: Build the Windows image
       # Note: Any secrets (API keys, passwords, etc.) should be passed via env block
@@ -83,8 +113,9 @@ jobs:
       #   PACKER_VAR_windows_password: ${{ secrets.WINDOWS_PASSWORD }}
       #   PACKER_VAR_api_key: ${{ secrets.HYPERVISOR_API_KEY }}
       - name: Packer Build
+        working-directory: packer
         run: |
-          cd packer
+          echo "Starting Packer build..."
           packer build .
         env:
           # Add any required environment variables or secrets here
