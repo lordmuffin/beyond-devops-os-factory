@@ -37,6 +37,11 @@ jobs:
   validate:
     name: Validate Packer Configuration
     runs-on: ubuntu-latest
+    
+    # Set minimal required permissions for security
+    permissions:
+      contents: read
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -46,15 +51,92 @@ jobs:
         with:
           version: ${{ env.PACKER_VERSION }}
 
-      - name: Validate Packer template
+      # Cache Packer plugins to speed up subsequent runs
+      - name: Cache Packer Plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.packer.d/plugins
+            ~/.config/packer/plugins
+          key: ${{ runner.os }}-packer-plugins-kairos-${{ hashFiles('packer/kairos.pkr.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-packer-plugins-kairos-
+            ${{ runner.os }}-packer-plugins-
+
+      # Debug workflow environment
+      - name: Debug Environment
         run: |
-          cd packer
-          packer validate kairos.pkr.hcl
+          echo "=== DEBUGGING WORKFLOW ENVIRONMENT ==="
+          echo "Repository root directory: $(pwd)"
+          echo "Contents of repository root:"
+          ls -la
+          echo "Packer version: $(packer version)"
+          echo "Which packer: $(which packer)"
+          echo "Checking if packer directory exists:"
+          ls -la packer/ || echo "No packer directory found"
+
+      # Initialize Packer plugins and validate configuration
+      - name: Packer Init and Validate
+        working-directory: packer
+        run: |
+          echo "=== PACKER INITIALIZATION AND VALIDATION ==="
+          echo "Current directory: $(pwd)"
+          echo "Packer version: $(packer version)"
+          
+          echo "Contents of packer directory:"
+          ls -la
+          
+          echo "Contents of Kairos Packer configuration file:"
+          cat kairos.pkr.hcl | head -30
+          
+          echo "Running packer init with maximum verbosity..."
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer.log packer init . || {
+            echo "❌ Packer init failed, showing log:"
+            cat ./packer.log 2>/dev/null || echo "No log file found"
+            echo "Attempting manual plugin installation..."
+            packer plugins install github.com/hashicorp/docker
+            packer plugins install github.com/hashicorp/qemu
+            exit 1
+          }
+          
+          echo "✅ Packer init completed successfully!"
+          echo "Checking plugin installation locations..."
+          
+          # Check various plugin locations
+          for dir in ~/.packer.d ~/.config/packer; do
+            if [ -d "$dir" ]; then
+              echo "Found directory: $dir"
+              find "$dir" -name "*" -type f 2>/dev/null | head -10
+            fi
+          done
+          
+          echo "=== RUNNING VALIDATION ==="
+          echo "Current working directory: $(pwd)"
+          echo "Files in current directory:"
+          ls -la *.pkr.hcl
+          
+          if packer validate .; then
+            echo "✅ Packer validation successful!"
+          else
+            echo "❌ Packer validation failed"
+            echo "Debugging information:"
+            echo "Plugin status:"
+            find ~/.packer.d -name "*" 2>/dev/null || echo "No ~/.packer.d found"
+            find ~/.config/packer -name "*" 2>/dev/null || echo "No ~/.config/packer found"
+            exit 1
+          fi
 
       - name: Format check Packer template
+        working-directory: packer
         run: |
-          cd packer
-          packer fmt -check kairos.pkr.hcl
+          echo "=== RUNNING FORMAT CHECK ==="
+          if packer fmt -check kairos.pkr.hcl; then
+            echo "✅ Packer format check successful!"
+          else
+            echo "❌ Packer format check failed"
+            echo "Run 'packer fmt kairos.pkr.hcl' to fix formatting"
+            exit 1
+          fi
 
   # Build custom Kairos container image
   build-container:
@@ -77,20 +159,49 @@ jobs:
         with:
           version: ${{ env.PACKER_VERSION }}
 
+      # Cache Packer plugins for build jobs
+      - name: Cache Packer Plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.packer.d/plugins
+            ~/.config/packer/plugins
+          key: ${{ runner.os }}-packer-plugins-kairos-${{ hashFiles('packer/kairos.pkr.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-packer-plugins-kairos-
+            ${{ runner.os }}-packer-plugins-
+
       - name: Initialize Packer
+        working-directory: packer
         run: |
-          cd packer
-          packer init kairos.pkr.hcl
+          echo "=== INITIALIZING PACKER FOR BUILD ==="
+          echo "Current directory: $(pwd)"
+          echo "Packer version: $(packer version)"
+          
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer-build.log packer init . || {
+            echo "❌ Packer init failed, showing log:"
+            cat ./packer-build.log 2>/dev/null || echo "No log file found"
+            exit 1
+          }
+          echo "✅ Packer init completed successfully!"
 
       - name: Build custom Kairos container image
+        working-directory: packer
         run: |
-          cd packer
+          echo "=== STARTING KAIROS CONTAINER BUILD ==="
+          echo "Build parameters:"
+          echo "  - Base distribution: ${{ matrix.base_distribution }}"
+          echo "  - K8s distribution: ${{ matrix.k8s_distribution }}"
+          echo "  - Kairos version: ${{ env.KAIROS_VERSION }}"
+          
           packer build \
             -only='kairos-container-build' \
             -var="base_distribution=${{ matrix.base_distribution }}" \
             -var="k8s_distribution=${{ matrix.k8s_distribution }}" \
             -var="kairos_version=${{ env.KAIROS_VERSION }}" \
             kairos.pkr.hcl
+        env:
+          PACKER_LOG: 1
 
       - name: Export container image
         run: |
@@ -155,14 +266,43 @@ jobs:
         run: |
           gunzip -c kairos-container-*.tar.gz | docker load
 
+      # Cache Packer plugins for ISO build
+      - name: Cache Packer Plugins
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.packer.d/plugins
+            ~/.config/packer/plugins
+          key: ${{ runner.os }}-packer-plugins-kairos-${{ hashFiles('packer/kairos.pkr.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-packer-plugins-kairos-
+            ${{ runner.os }}-packer-plugins-
+
       - name: Initialize Packer
+        working-directory: packer
         run: |
-          cd packer
-          packer init kairos.pkr.hcl
+          echo "=== INITIALIZING PACKER FOR ISO BUILD ==="
+          echo "Current directory: $(pwd)"
+          echo "Packer version: $(packer version)"
+          
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer-iso.log packer init . || {
+            echo "❌ Packer init failed, showing log:"
+            cat ./packer-iso.log 2>/dev/null || echo "No log file found"
+            exit 1
+          }
+          echo "✅ Packer init completed successfully!"
 
       - name: Build Kairos bootable ISO
+        working-directory: packer
         run: |
-          cd packer
+          echo "=== STARTING KAIROS ISO BUILD ==="
+          echo "Build parameters:"
+          echo "  - Base distribution: ${{ matrix.base_distribution }}"
+          echo "  - K8s distribution: ${{ matrix.k8s_distribution }}"
+          echo "  - Kairos version: ${{ env.KAIROS_VERSION }}"
+          echo "  - Memory: 4096 MB"
+          echo "  - CPUs: 4"
+          
           packer build \
             -only='kairos-iso-build' \
             -var="base_distribution=${{ matrix.base_distribution }}" \
@@ -171,6 +311,8 @@ jobs:
             -var="memory=4096" \
             -var="cpus=4" \
             kairos.pkr.hcl
+        env:
+          PACKER_LOG: 1
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
