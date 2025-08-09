@@ -64,26 +64,26 @@ source "qemu" "windows_11_pro" {
   iso_checksum = var.iso_checksum
 
   # Virtual machine configuration
-  vm_name      = var.vm_name
-  memory       = var.memory
-  cpus         = var.cpus
-  disk_size    = var.disk_size
-  
+  vm_name   = var.vm_name
+  memory    = var.memory
+  cpus      = var.cpus
+  disk_size = var.disk_size
+
   # Output configuration
   output_directory = "output-windows-custom"
-  
+
   # QEMU-specific settings
   accelerator = "kvm"
   qemu_binary = "qemu-system-x86_64"
-  
+
   # Network configuration for provisioning
   net_device = "virtio-net"
-  
+
   # Disk and boot configuration
   disk_interface   = "virtio"
   disk_compression = true
-  format          = "qcow2"
-  
+  format           = "qcow2"
+
   # Boot configuration
   boot_wait = "3m"
   boot_command = [
@@ -92,14 +92,14 @@ source "qemu" "windows_11_pro" {
   ]
 
   # Communication configuration for provisioning
-  communicator = "winrm"
+  communicator   = "winrm"
   winrm_username = "Administrator"
   winrm_password = "packer"
-  winrm_timeout = "12h"
-  winrm_use_ssl = false
+  winrm_timeout  = "12h"
+  winrm_use_ssl  = false
   winrm_insecure = true
   winrm_use_ntlm = true
-  
+
   # Shutdown configuration
   shutdown_command = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\""
   shutdown_timeout = "15m"
@@ -109,7 +109,7 @@ source "qemu" "windows_11_pro" {
 # This section specifies the sequence of steps to customize the base image
 build {
   name = "windows-11-pro-build"
-  
+
   # Reference the source configuration defined above
   sources = ["source.qemu.windows_11_pro"]
 
@@ -118,10 +118,10 @@ build {
   provisioner "powershell" {
     # Execute the common tools installation script
     script = "../scripts/prepare-windows.ps1"
-    
+
     # Execution policy settings for security
     execution_policy = "bypass"
-    
+
     # Timeout configuration to prevent hanging builds
     timeout = "30m"
   }
@@ -131,17 +131,17 @@ build {
   provisioner "ansible" {
     # Path to the Ansible playbook
     playbook_file = "../ansible/playbook.yml"
-    
+
     # Connection configuration for Windows targets
     use_proxy = false
-    
+
     # Ansible-specific settings for Windows
     extra_arguments = [
       "--connection", "winrm",
       "--winrm-transport", "ntlm",
       "--winrm-server-cert-validation", "ignore"
     ]
-    
+
     # Timeout configuration
     ansible_env_vars = [
       "ANSIBLE_HOST_KEY_CHECKING=False",
@@ -154,10 +154,10 @@ build {
   provisioner "powershell" {
     # Execute the image finalization script
     script = "../scripts/finalize-windows.ps1"
-    
+
     # Execution policy settings for security
     execution_policy = "bypass"
-    
+
     # Timeout configuration - Sysprep process can take time
     timeout = "60m"
   }
