@@ -120,8 +120,9 @@ source "qemu" "kairos_iso" {
   # Boot configuration
   boot_wait = "10s"
   boot_command = [
-    # Minimal boot commands - most configuration will be done via provisioning
+    # Boot commands for Ubuntu autoinstall
     "<wait10><esc><wait>",
+    "c<wait>",
     "linux /casper/vmlinuz autoinstall ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ---<enter>",
     "initrd /casper/initrd<enter>",
     "boot<enter>"
@@ -136,7 +137,7 @@ source "qemu" "kairos_iso" {
   communicator = "ssh"
   ssh_username = "kairos"
   ssh_password = "kairos"
-  ssh_timeout  = "20m"
+  ssh_timeout  = "30m"
 
   # Shutdown configuration
   shutdown_command = "sudo shutdown -P now"

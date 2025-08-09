@@ -30,7 +30,7 @@ autoinstall:
   identity:
     hostname: kairos-builder
     username: kairos
-    password: '$6$rounds=4096$salted$hash.generated.password'
+    password: '$6$nSvhkvPEFj9McudL$iLfFq4TTTXbC.rWuYHe4ddZbVaPYYNLzyHRF./kP1S/kWKkDsrM29m8QFcTVG8c6KNZM8lJzOEaOFGtniqLYB1'
     
   # SSH configuration
   ssh:
