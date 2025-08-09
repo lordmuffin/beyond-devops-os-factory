@@ -66,10 +66,10 @@ variable "cpus" {
 source "docker" "kairos_custom" {
   # Use official Kairos base image
   image = "quay.io/kairos/ubuntu:24.04-standard-amd64-generic-v3.2.0-k3sv1.32.3-k3s1"
-  
+
   # Container configuration
   commit = true
-  
+
   # Output configuration for custom container image
   changes = [
     "ENV KAIROS_CUSTOM=true",
@@ -89,28 +89,28 @@ source "qemu" "kairos_iso" {
   # Use a minimal Linux ISO as base for bootable image creation
   iso_url      = "https://releases.ubuntu.com/24.04/ubuntu-24.04.1-live-server-amd64.iso"
   iso_checksum = "sha256:e240e4b801f7bb68c20d1356b60968ad0c33a41d00d828e74ceb3364a0317be9"
-  
+
   # Virtual machine configuration for building
-  vm_name      = "kairos-builder"
-  memory       = var.memory
-  cpus         = var.cpus
-  disk_size    = var.disk_size
-  
+  vm_name   = "kairos-builder"
+  memory    = var.memory
+  cpus      = var.cpus
+  disk_size = var.disk_size
+
   # Output configuration
   output_directory = var.output_directory
-  
+
   # QEMU-specific settings
   accelerator = "kvm"
   qemu_binary = "qemu-system-x86_64"
-  
+
   # Network configuration
   net_device = "virtio-net"
-  
+
   # Disk configuration
   disk_interface   = "virtio"
   disk_compression = true
-  format          = "qcow2"
-  
+  format           = "qcow2"
+
   # Boot configuration
   boot_wait = "10s"
   boot_command = [
@@ -120,18 +120,18 @@ source "qemu" "kairos_iso" {
     "initrd /casper/initrd<enter>",
     "boot<enter>"
   ]
-  
+
   # HTTP server for serving cloud-config
   http_directory = "kairos"
   http_port_min  = 8000
   http_port_max  = 8100
-  
+
   # Communication configuration
   communicator = "ssh"
   ssh_username = "kairos"
   ssh_password = "kairos"
-  ssh_timeout = "20m"
-  
+  ssh_timeout  = "20m"
+
   # Shutdown configuration
   shutdown_command = "sudo shutdown -P now"
   shutdown_timeout = "5m"
@@ -140,7 +140,7 @@ source "qemu" "kairos_iso" {
 # Build configuration for custom Kairos container image
 build {
   name = "kairos-container-build"
-  
+
   # Build custom Kairos container image first
   sources = ["source.docker.kairos_custom"]
 
@@ -174,7 +174,7 @@ build {
       "# Install storage and enterprise packages",
       "apt-get install -y \\",
       "  cifs-utils \\",
-      "  nfs-common \\", 
+      "  nfs-common \\",
       "  open-iscsi \\",
       "  lsscsi \\",
       "  sg3-utils \\",
@@ -205,7 +205,7 @@ build {
       "mkdir -p /system/oem",
       "cp /tmp/cloud-config.yaml /system/oem/99_custom.yaml",
       "",
-      "# Finalize the image", 
+      "# Finalize the image",
       "bash /tmp/scripts/finalize-kairos.sh",
       "",
       "# Final cleanup",
@@ -218,7 +218,7 @@ build {
   # Tag the custom container image
   post-processor "docker-tag" {
     repository = "custom-kairos-base"
-    tags       = [
+    tags = [
       "${var.kairos_version}",
       "${var.kairos_version}-${formatdate("YYYY-MM-DD", timestamp())}",
       "latest"
@@ -229,7 +229,7 @@ build {
 # Build configuration for bootable ISO image
 build {
   name = "kairos-iso-build"
-  
+
   # Build bootable ISO using QEMU
   sources = ["source.qemu.kairos_iso"]
 
@@ -260,7 +260,7 @@ build {
 
   # File provisioner - copy cloud-config and scripts
   provisioner "file" {
-    sources     = [
+    sources = [
       "kairos/cloud-config.yaml",
       "../scripts/kairos/"
     ]
