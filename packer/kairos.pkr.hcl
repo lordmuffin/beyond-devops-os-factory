@@ -62,16 +62,10 @@ variable "cpus" {
   default     = "2"
 }
 
-# Build custom Kairos container image using Dockerfile
+# Build custom Kairos container image from base image
 source "docker" "kairos_custom" {
-  # Build from our custom Dockerfile
-  build_args = {
-    KAIROS_VERSION = var.kairos_version
-  }
-  
-  # Use the Dockerfile in kairos directory
-  context_path = "./kairos"
-  dockerfile   = "Dockerfile"
+  # Use official Kairos base image
+  image = "quay.io/kairos/ubuntu:24.04-standard-amd64-generic-v3.2.0-k3sv1.32.3-k3s1"
   
   # Container configuration
   commit = true
@@ -80,10 +74,13 @@ source "docker" "kairos_custom" {
   changes = [
     "ENV KAIROS_CUSTOM=true",
     "ENV KAIROS_VERSION=${var.kairos_version}",
+    "ENV DEBIAN_FRONTEND=noninteractive",
+    "ENV DEBCONF_NONINTERACTIVE_SEEN=true",
     "LABEL org.opencontainers.image.title=\"Custom Kairos Base\"",
     "LABEL org.opencontainers.image.description=\"Custom Kairos base image with enterprise configuration and storage support\"",
     "LABEL org.opencontainers.image.version=\"${var.kairos_version}\"",
-    "LABEL org.opencontainers.image.source=\"https://github.com/beyond-devops-os-factory\""
+    "LABEL org.opencontainers.image.source=\"https://github.com/beyond-devops-os-factory\"",
+    "LABEL org.opencontainers.image.licenses=\"Apache-2.0\""
   ]
 }
 
@@ -159,27 +156,46 @@ build {
     destination = "/tmp/cloud-config.yaml"
   }
 
-  # Shell provisioner - install Kairos and configure system
+  # Shell provisioner - configure timezone and install packages
   provisioner "shell" {
     inline = [
       "export DEBIAN_FRONTEND=noninteractive",
+      "export DEBCONF_NONINTERACTIVE_SEEN=true",
       "",
-      "# Update system",
+      "# Configure timezone (America/Chicago)",
+      "truncate -s0 /tmp/preseed.cfg",
+      "echo 'tzdata tzdata/Areas select America' >> /tmp/preseed.cfg",
+      "echo 'tzdata tzdata/Zones/America select Chicago' >> /tmp/preseed.cfg",
+      "debconf-set-selections /tmp/preseed.cfg",
+      "rm -f /etc/timezone /etc/localtime",
       "apt-get update",
-      "apt-get upgrade -y",
+      "apt-get install -y tzdata",
       "",
-      "# Install Docker for AuroraBoot",
-      "curl -fsSL https://get.docker.com -o get-docker.sh",
-      "sh get-docker.sh",
+      "# Install storage and enterprise packages",
+      "apt-get install -y \\",
+      "  cifs-utils \\",
+      "  nfs-common \\", 
+      "  open-iscsi \\",
+      "  lsscsi \\",
+      "  sg3-utils \\",
+      "  multipath-tools \\",
+      "  scsitools \\",
+      "  curl \\",
+      "  wget \\",
+      "  docker.io",
+      "",
+      "# Configure multipath for storage",
+      "tee /etc/multipath.conf <<-'EOF'",
+      "defaults {",
+      "    user_friendly_names yes",
+      "    find_multipaths yes",
+      "}",
+      "EOF",
+      "",
+      "# Enable services",
       "systemctl enable docker",
-      "",
-      "# Install Kairos CLI",
-      "curl -L https://github.com/kairos-io/kairos/releases/latest/download/kairos-linux-amd64 -o /usr/local/bin/kairos",
-      "chmod +x /usr/local/bin/kairos",
-      "",
-      "# Install AuroraBoot for image building",
-      "curl -L https://github.com/kairos-io/AuroraBoot/releases/latest/download/auroraboot-linux-amd64 -o /usr/local/bin/auroraboot",
-      "chmod +x /usr/local/bin/auroraboot",
+      "systemctl enable open-iscsi",
+      "systemctl enable multipathd",
       "",
       "# Make scripts executable and run preparation",
       "chmod +x /tmp/scripts/*.sh",
@@ -189,11 +205,13 @@ build {
       "mkdir -p /system/oem",
       "cp /tmp/cloud-config.yaml /system/oem/99_custom.yaml",
       "",
-      "# Finalize the image",
+      "# Finalize the image", 
       "bash /tmp/scripts/finalize-kairos.sh",
       "",
-      "# Clean up",
-      "rm -rf /tmp/scripts /tmp/cloud-config.yaml /get-docker.sh"
+      "# Final cleanup",
+      "rm -rf /tmp/scripts /tmp/cloud-config.yaml /tmp/preseed.cfg",
+      "apt-get clean",
+      "rm -rf /var/lib/apt/lists/*"
     ]
   }
 
