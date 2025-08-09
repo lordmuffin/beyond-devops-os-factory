@@ -7,20 +7,19 @@ metadata:
     app: kairos
     environment: enterprise
     distribution: ubuntu
+    factory-action: "true"
 spec:
-  # Base image configuration
-  imageName: "custom-kairos-base:latest"
+  # Base image will be configured by Factory Action
+  # imageName is set dynamically by the action
   
-  # Build artifacts to generate
+  # Build artifacts to generate - handled by Factory Action
   iso: true
+  raw: true
   
-  # Optional: Generate additional image formats
-  # squashfs: true
-  # netboot: true
-  # cloud_images:
-  #   - aws
-  #   - gce
-  #   - azure
+  # Cloud image formats for enterprise deployment
+  cloud_images:
+    - raw
+    - qcow2
   
   # Bundles to include (optional packages/configurations)
   bundles:
@@ -133,11 +132,11 @@ spec:
     # Timeout for build process
     activeDeadlineSeconds: 3600
     
-    # Build environment variables
+    # Build environment variables for Factory Action
     env:
-      - name: KAIROS_VERSION
-        value: "v3.2.0"
       - name: BUILD_TYPE
         value: "enterprise"
       - name: ENTERPRISE_MODE
+        value: "true"
+      - name: FACTORY_ACTION_BUILD
         value: "true"
