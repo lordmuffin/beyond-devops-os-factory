@@ -43,6 +43,11 @@ jobs:
   build-iso:
     name: Build Kairos ISO
     uses: kairos-io/kairos-factory-action/.github/workflows/reusable-factory.yaml@v0.0.4
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+      actions: read
     with:
       version: ${{ github.event.inputs.version || '1.0.0' }}
       base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
@@ -55,6 +60,11 @@ jobs:
   build-raw:
     name: Build Kairos RAW
     uses: kairos-io/kairos-factory-action/.github/workflows/reusable-factory.yaml@v0.0.4
+    permissions:
+      contents: read
+      security-events: write
+      id-token: write
+      actions: read
     with:
       version: ${{ github.event.inputs.version || '1.0.0' }}
       base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
@@ -108,4 +118,4 @@ jobs:
           draft: false
           prerelease: false
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
