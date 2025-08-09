@@ -16,15 +16,13 @@ autoinstall:
     network:
       version: 2
       ethernets:
-        enp0s3:
+        ens3:
           dhcp4: true
-          dhcp-identifier: mac
           
   # Storage configuration
   storage:
     layout:
-      name: lvm
-      sizing-policy: scaled
+      name: direct
       
   # User configuration for build process
   identity:
@@ -52,8 +50,8 @@ autoinstall:
   late-commands:
     - echo 'kairos ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/kairos
     - chmod 440 /target/etc/sudoers.d/kairos
-    - systemctl enable docker
-    - systemctl enable ssh
+    - curtin in-target --target=/target -- systemctl enable docker
+    - curtin in-target --target=/target -- systemctl enable ssh
     - echo 'PasswordAuthentication yes' >> /target/etc/ssh/sshd_config
     - echo 'PermitRootLogin no' >> /target/etc/ssh/sshd_config
     - echo 'PubkeyAuthentication yes' >> /target/etc/ssh/sshd_config

@@ -118,12 +118,12 @@ source "qemu" "kairos_iso" {
   format           = "qcow2"
 
   # Boot configuration
-  boot_wait = "10s"
+  boot_wait = "5s"
   boot_command = [
-    # Boot commands for Ubuntu autoinstall
+    # Boot Ubuntu with autoinstall
     "<wait10><esc><wait>",
     "c<wait>",
-    "linux /casper/vmlinuz autoinstall ds=nocloud-net\\;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/ ---<enter>",
+    "linux /casper/vmlinuz autoinstall ds=nocloud-net;s=http://{{ .HTTPIP }}:{{ .HTTPPort }}/<enter>",
     "initrd /casper/initrd<enter>",
     "boot<enter>"
   ]
