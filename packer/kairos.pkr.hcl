@@ -104,10 +104,16 @@ source "qemu" "kairos_iso" {
   qemu_binary = "qemu-system-x86_64"
 
   # Headless mode for CI/CD environments
-  headless         = true
-  vnc_bind_address = "0.0.0.0"
-  vnc_port_min     = 5900
-  vnc_port_max     = 6000
+  headless = true
+  
+  # Display configuration for headless mode
+  display = "none"
+  
+  # QEMU arguments for headless operation
+  qemuargs = [
+    ["-display", "none"],
+    ["-serial", "stdio"]
+  ]
 
   # Network configuration
   net_device = "virtio-net"
