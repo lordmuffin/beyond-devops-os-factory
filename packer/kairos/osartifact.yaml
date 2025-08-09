@@ -1,0 +1,143 @@
+apiVersion: build.kairos.io/v1alpha2
+kind: OSArtifact
+metadata:
+  name: beyond-devops-kairos
+  namespace: default
+  labels:
+    app: kairos
+    environment: enterprise
+    distribution: ubuntu
+spec:
+  # Base image configuration
+  imageName: "custom-kairos-base:latest"
+  
+  # Build artifacts to generate
+  iso: true
+  
+  # Optional: Generate additional image formats
+  # squashfs: true
+  # netboot: true
+  # cloud_images:
+  #   - aws
+  #   - gce
+  #   - azure
+  
+  # Bundles to include (optional packages/configurations)
+  bundles:
+    # Enterprise monitoring and observability
+    - quay.io/kairos/packages:system-upgrade-controller
+    - quay.io/kairos/packages:cert-manager
+    
+  # Cloud configuration for the built images
+  cloudConfig: |
+    #cloud-config
+    hostname: kairos-enterprise-{{ trunc 4 .MachineID }}
+    
+    users:
+    - name: kairos
+      passwd: kairos
+      groups:
+        - admin
+        - docker
+      ssh_authorized_keys:
+      - github:lordmuffin
+    
+    # Enterprise K3s configuration with HA
+    k3s:
+      enabled: true
+      args:
+      - --disable=traefik,servicelb,kube-proxy
+      - --flannel-backend=none
+      - --disable-network-policy
+      - --node-taint dedicated=control:NoSchedule
+      - --tls-san=192.168.1.20
+      - --cluster-init
+      - --datastore-endpoint=etcd
+    
+    # KubeVIP for load balancing
+    kubevip:
+      eip: "192.168.1.20"
+    
+    # P2P mesh networking configuration
+    p2p:
+      disable_dht: false
+      network_token: "enterprise-mesh-token"
+      vpn:
+        create: false
+        use: false
+      auto:
+        enable: true
+        ha:
+          enable: true
+          master_nodes: 3
+    
+    # Enterprise installation configuration
+    install:
+      auto: true
+      device: "auto"
+      reboot: true
+      poweroff: false
+    
+    # Enterprise monitoring and compliance
+    write_files:
+    - content: |
+        #!/bin/bash
+        # Enterprise health check script
+        systemctl is-active k3s || exit 1
+        curl -k https://localhost:6443/healthz || exit 1
+        echo "Enterprise Kairos node healthy"
+      path: /usr/local/bin/enterprise-health-check.sh
+      permissions: "0755"
+      owner: root:root
+    
+    - content: |
+        # Enterprise compliance configuration
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: enterprise-compliance
+          namespace: kube-system
+        data:
+          compliance-level: "enterprise"
+          security-hardening: "enabled"
+          audit-logging: "enabled"
+          network-policies: "required"
+      path: /etc/kairos/enterprise-compliance.yaml
+      permissions: "0644"
+      owner: root:root
+    
+    # System services configuration
+    systemd:
+      enable:
+        - k3s
+        - docker
+        - enterprise-monitoring.timer
+      
+    # Enterprise runcmd scripts
+    runcmd:
+    - systemctl enable enterprise-monitoring.timer
+    - systemctl start enterprise-monitoring.timer
+    - chmod +x /usr/local/bin/enterprise-health-check.sh
+    
+  # Build configuration
+  buildConfig:
+    # Resource limits for build process
+    resources:
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      limits:
+        cpu: "4"
+        memory: "8Gi"
+    
+    # Timeout for build process
+    activeDeadlineSeconds: 3600
+    
+    # Build environment variables
+    env:
+      - name: KAIROS_VERSION
+        value: "v3.2.0"
+      - name: BUILD_TYPE
+        value: "enterprise"
+      - name: ENTERPRISE_MODE
+        value: "true"

@@ -1,0 +1,58 @@
+#cloud-config
+
+# Kairos autoinstall configuration for Packer build
+# This file is used during the initial system installation
+
+autoinstall:
+  version: 1
+  
+  # Locale and keyboard configuration
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+    
+  # Network configuration
+  network:
+    network:
+      version: 2
+      ethernets:
+        enp0s3:
+          dhcp4: true
+          dhcp-identifier: mac
+          
+  # Storage configuration
+  storage:
+    layout:
+      name: lvm
+      sizing-policy: scaled
+      
+  # User configuration for build process
+  identity:
+    hostname: kairos-builder
+    username: kairos
+    password: '$6$rounds=4096$salted$hash.generated.password'
+    
+  # SSH configuration
+  ssh:
+    install-server: true
+    allow-pw: true
+    authorized-keys: []
+    
+  # Package installation
+  packages:
+    - curl
+    - wget
+    - git
+    - vim
+    - htop
+    - docker.io
+    
+  # Commands to run after installation
+  late-commands:
+    - echo 'kairos ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/kairos
+    - chmod 440 /target/etc/sudoers.d/kairos
+    - systemctl enable docker
+    
+  # Reboot after installation
+  power_state:
+    mode: reboot
