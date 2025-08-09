@@ -41,72 +41,38 @@ env:
   PLATFORMS: ${{ inputs.platforms || 'amd64' }}
 
 jobs:
-  build-kairos:
-    name: Build Kairos Images
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: read
-      security-events: write
-      packages: write
+  build-iso:
+    name: Build Kairos ISO
+    uses: kairos-io/kairos-factory-action/.github/workflows/reusable-factory.yaml@v0.0.4
+    with:
+      version: ${{ github.event.inputs.version || '1.0.0' }}
+      base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
+      model: "generic"
+      iso: true
+      platforms: ${{ github.event.inputs.platforms || 'amd64' }}
+      kubernetes_distro: "k3s"
+      cloud_config: "packer/kairos/cloud-config.yaml"
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
       
-    strategy:
-      matrix:
-        artifact: ['iso', 'raw']
-        
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build Kairos Images
-        uses: kairos-io/kairos-factory-action@v1
-        with:
-          # Core configuration
-          version: ${{ env.VERSION }}
-          base_image: ${{ env.BASE_IMAGE }}
-          model: "generic"
-          
-          # Artifacts to build
-          artifacts: ${{ matrix.artifact }}
-          
-          # Platform configuration
-          platforms: ${{ env.PLATFORMS }}
-          
-          # Kubernetes distribution
-          kubernetes_distro: "k3s"
-          
-          # Security scanning
-          security_checks: true
-          
-          # Use our custom OSArtifact configuration
-          osartifact_path: "packer/kairos/osartifact.yaml"
-          cloud_config_path: "packer/kairos/cloud-config.yaml"
-          
-          # Enterprise configuration
-          enterprise_mode: true
-          
-          # Build optimization
-          cache: true
-          
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: kairos-${{ matrix.artifact }}-${{ env.PLATFORMS }}-${{ env.VERSION }}
-          path: |
-            *.iso
-            *.raw
-            *.img
-            *.qcow2
-          retention-days: 30
+  build-raw:
+    name: Build Kairos RAW
+    uses: kairos-io/kairos-factory-action/.github/workflows/reusable-factory.yaml@v0.0.4
+    with:
+      version: ${{ github.event.inputs.version || '1.0.0' }}
+      base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
+      model: "generic"
+      raw: true
+      platforms: ${{ github.event.inputs.platforms || 'amd64' }}
+      kubernetes_distro: "k3s"
+      cloud_config: "packer/kairos/cloud-config.yaml"
+    secrets:
+      github_token: ${{ secrets.GITHUB_TOKEN }}
 
   create-release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: build-kairos
+    needs: [build-iso, build-raw]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     permissions:
@@ -116,15 +82,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-
       - name: Generate release tag
         id: tag
         run: |
-          TAG="kairos-factory-${{ env.VERSION }}-$(date +'%Y%m%d-%H%M%S')"
+          TAG="kairos-factory-${{ github.event.inputs.version || '1.0.0' }}-$(date +'%Y%m%d-%H%M%S')"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
 
       - name: Create Release
@@ -142,15 +103,13 @@ jobs:
             - **RAW Images**: Raw disk images for virtualization
             
             ### Configuration:
-            - Version: ${{ env.VERSION }}
-            - Base Image: ${{ env.BASE_IMAGE }}
-            - Platforms: ${{ env.PLATFORMS }}
+            - Version: ${{ github.event.inputs.version || '1.0.0' }}
+            - Base Image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
+            - Platforms: ${{ github.event.inputs.platforms || 'amd64' }}
             - Kubernetes: K3s with enterprise configuration
             - Security: Vulnerability scanning enabled
             
             Built from commit: ${{ github.sha }}
-          files: |
-            artifacts/**/*
           draft: false
           prerelease: false
         env:
