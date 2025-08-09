@@ -22,8 +22,8 @@ packer {
 # These provide flexibility for different environments and use cases
 variable "base_distribution" {
   type        = string
-  description = "Base distribution (ubuntu-24.04, fedora-40, etc.)"
-  default     = "ubuntu-24.04"
+  description = "Base distribution (ubuntu-22.04, ubuntu-24.04, fedora-40, etc.)"
+  default     = "ubuntu-22.04"
 }
 
 variable "k8s_distribution" {
@@ -35,7 +35,7 @@ variable "k8s_distribution" {
 variable "kairos_version" {
   type        = string
   description = "Kairos framework version"
-  default     = "v3.2.0"
+  default     = "v2.4.3"
 }
 
 variable "output_directory" {
@@ -64,8 +64,8 @@ variable "cpus" {
 
 # Build custom Kairos container image from base image
 source "docker" "kairos_custom" {
-  # Use official Kairos base image
-  image = "quay.io/kairos/ubuntu:24.04-standard-amd64-generic-v3.2.0-k3sv1.32.3-k3s1"
+  # Use official Kairos base image - using the same version from original Dockerfile
+  image = "quay.io/kairos/ubuntu:22.04-standard-amd64-generic-v2.4.3-k3sv1.28.2-k3s1"
 
   # Container configuration
   commit = true

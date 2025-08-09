@@ -20,7 +20,7 @@ on:
       kairos_version:
         description: 'Kairos version to build'
         required: false
-        default: 'v3.2.0'
+        default: 'v2.4.3'
         type: string
       build_iso:
         description: 'Build bootable ISO (requires KVM)'
@@ -29,7 +29,7 @@ on:
         type: boolean
 
 env:
-  KAIROS_VERSION: ${{ inputs.kairos_version || 'v3.2.0' }}
+  KAIROS_VERSION: ${{ inputs.kairos_version || 'v2.4.3' }}
   PACKER_VERSION: '1.10.1'
 
 jobs:
@@ -145,7 +145,7 @@ jobs:
     needs: validate
     strategy:
       matrix:
-        base_distribution: ['ubuntu-24.04']
+        base_distribution: ['ubuntu-22.04']
         k8s_distribution: ['k3s']
     steps:
       - name: Checkout repository
@@ -235,7 +235,7 @@ jobs:
     if: ${{ (github.event_name == 'workflow_dispatch' && inputs.build_iso) || (github.ref == 'refs/heads/main' && github.event_name == 'push') }}
     strategy:
       matrix:
-        base_distribution: ['ubuntu-24.04']
+        base_distribution: ['ubuntu-22.04']
         k8s_distribution: ['k3s']
     steps:
       - name: Checkout repository
