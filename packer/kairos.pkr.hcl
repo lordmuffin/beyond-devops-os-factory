@@ -134,10 +134,10 @@ source "qemu" "kairos_iso" {
   http_port_max  = 8100
 
   # Communication configuration
-  communicator = "ssh"
-  ssh_username = "kairos"
-  ssh_password = "kairos"
-  ssh_timeout  = "30m"
+  communicator     = "ssh"
+  ssh_username     = "kairos"
+  ssh_password     = "kairos"
+  ssh_timeout      = "30m"
   ssh_wait_timeout = "30m"
 
   # Shutdown configuration
