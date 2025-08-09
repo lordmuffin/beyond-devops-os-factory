@@ -25,20 +25,19 @@ on:
         required: false
         default: 'ubuntu:22.04'
         type: string
-      platforms:
-        description: 'Target platforms (amd64, arm64, or both)'
+      arch:
+        description: 'Target architecture'
         required: false
         default: 'amd64'
         type: choice
         options:
           - 'amd64'
           - 'arm64'
-          - 'amd64,arm64'
 
 env:
   VERSION: ${{ inputs.version || '1.0.0' }}
   BASE_IMAGE: ${{ inputs.base_image || 'ubuntu:22.04' }}
-  PLATFORMS: ${{ inputs.platforms || 'amd64' }}
+  ARCH: ${{ inputs.arch || 'amd64' }}
 
 jobs:
   build-iso:
@@ -49,11 +48,9 @@ jobs:
       base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
       model: "generic"
       iso: true
-      platforms: ${{ github.event.inputs.platforms || 'amd64' }}
+      arch: ${{ github.event.inputs.arch || 'amd64' }}
       kubernetes_distro: "k3s"
-      cloud_config: "packer/kairos/cloud-config.yaml"
-    secrets:
-      TOKEN: ${{ secrets.TOKEN }}
+      security_checks: "grype,trivy"
       
   build-raw:
     name: Build Kairos RAW
@@ -63,11 +60,9 @@ jobs:
       base_image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
       model: "generic"
       raw: true
-      platforms: ${{ github.event.inputs.platforms || 'amd64' }}
+      arch: ${{ github.event.inputs.arch || 'amd64' }}
       kubernetes_distro: "k3s"
-      cloud_config: "packer/kairos/cloud-config.yaml"
-    secrets:
-      TOKEN: ${{ secrets.TOKEN }}
+      security_checks: "grype,trivy"
 
   create-release:
     name: Create Release
@@ -105,7 +100,7 @@ jobs:
             ### Configuration:
             - Version: ${{ github.event.inputs.version || '1.0.0' }}
             - Base Image: ${{ github.event.inputs.base_image || 'ubuntu:22.04' }}
-            - Platforms: ${{ github.event.inputs.platforms || 'amd64' }}
+            - Architecture: ${{ github.event.inputs.arch || 'amd64' }}
             - Kubernetes: K3s with enterprise configuration
             - Security: Vulnerability scanning enabled
             
@@ -113,4 +108,4 @@ jobs:
           draft: false
           prerelease: false
         env:
-          TOKEN: ${{ secrets.TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
