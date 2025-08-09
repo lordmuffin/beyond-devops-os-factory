@@ -90,7 +90,7 @@ jobs:
           cat kairos.pkr.hcl | head -30
           
           echo "Running packer init with maximum verbosity..."
-          PACKER_LOG=1 PACKER_LOG_PATH=./packer.log packer init . || {
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer.log packer init kairos.pkr.hcl || {
             echo "❌ Packer init failed, showing log:"
             cat ./packer.log 2>/dev/null || echo "No log file found"
             echo "Attempting manual plugin installation..."
@@ -115,7 +115,7 @@ jobs:
           echo "Files in current directory:"
           ls -la *.pkr.hcl
           
-          if packer validate .; then
+          if packer validate kairos.pkr.hcl; then
             echo "✅ Packer validation successful!"
           else
             echo "❌ Packer validation failed"
@@ -178,7 +178,7 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Packer version: $(packer version)"
           
-          PACKER_LOG=1 PACKER_LOG_PATH=./packer-build.log packer init . || {
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer-build.log packer init kairos.pkr.hcl || {
             echo "❌ Packer init failed, showing log:"
             cat ./packer-build.log 2>/dev/null || echo "No log file found"
             exit 1
@@ -285,7 +285,7 @@ jobs:
           echo "Current directory: $(pwd)"
           echo "Packer version: $(packer version)"
           
-          PACKER_LOG=1 PACKER_LOG_PATH=./packer-iso.log packer init . || {
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer-iso.log packer init kairos.pkr.hcl || {
             echo "❌ Packer init failed, showing log:"
             cat ./packer-iso.log 2>/dev/null || echo "No log file found"
             exit 1

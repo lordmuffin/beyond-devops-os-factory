@@ -101,7 +101,7 @@ jobs:
           cat windows_11_pro.pkr.hcl | head -20
           
           echo "Running packer init with maximum verbosity..."
-          PACKER_LOG=1 PACKER_LOG_PATH=./packer.log packer init . || {
+          PACKER_LOG=1 PACKER_LOG_PATH=./packer.log packer init windows_11_pro.pkr.hcl || {
             echo "❌ Packer init failed, showing log:"
             cat ./packer.log 2>/dev/null || echo "No log file found"
             echo "Attempting manual plugin installation..."
@@ -126,7 +126,7 @@ jobs:
           echo "Files in current directory:"
           ls -la *.pkr.hcl
           
-          if packer validate .; then
+          if packer validate windows_11_pro.pkr.hcl; then
             echo "✅ Packer validation successful!"
           else
             echo "❌ Packer validation failed"
@@ -147,7 +147,8 @@ jobs:
         run: |
           echo "=== STARTING PACKER BUILD ==="
           echo "Current directory: $(pwd)"
-          packer build .
+          echo "Building Windows 11 Pro image..."
+          packer build windows_11_pro.pkr.hcl
         env:
           # Add any required environment variables or secrets here
           PACKER_LOG: 1
