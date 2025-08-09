@@ -1,0 +1,18 @@
+---
+# Main Ansible playbook for customizing Windows images in Packer builds
+# This playbook serves as the entry point for all Windows customization tasks
+
+- name: Customize Windows Image
+  hosts: all
+  gather_facts: yes
+  
+  roles:
+    # Install Chocolatey packages from external list
+    - chocolatey-packages
+    
+    # Placeholder for additional roles - uncomment and customize as needed
+    # - windows-features      # Configure Windows optional features
+    # - system-hardening      # Apply security hardening configurations
+    # - user-configuration    # Set up default user profiles and settings
+    # - registry-tweaks       # Apply registry modifications
+    # - cleanup               # Remove unnecessary files and optimize image

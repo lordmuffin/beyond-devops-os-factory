@@ -1,14 +1,14 @@
-# Packer template for building Windows 11 Pro images on Azure
+# Packer template for building Windows 11 Pro images using QEMU/KVM
 # This template creates a customized Windows 11 Pro image with enterprise-ready configurations
 
 # Define the Packer version requirements
 # This ensures compatibility and prevents issues with newer Packer versions
 packer {
   required_plugins {
-    # Azure Resource Manager plugin for creating Azure-based images
-    azure = {
-      source  = "github.com/hashicorp/azure"
-      version = "~> 2"
+    # QEMU plugin for virtualization-based image building
+    qemu = {
+      source  = "github.com/hashicorp/qemu"
+      version = "~> 1"
     }
     # Ansible plugin for configuration management
     ansible = {
@@ -20,88 +20,89 @@ packer {
 
 # Define variables that can be overridden at build time
 # These provide flexibility for different environments and use cases
-variable "azure_subscription_id" {
+variable "iso_url" {
   type        = string
-  description = "Azure subscription ID where the image will be created"
-  default     = env("AZURE_SUBSCRIPTION_ID")
+  description = "URL to Windows 11 Pro ISO file"
+  default     = "https://software.download.prss.microsoft.com/dbazure/Win11_24H2_English_x64.iso?t=39bce123-5777-4213-a4a7-7c1bdf0a2aa7&P1=1754784648&P2=601&P3=2&P4=hbItu7HZSxFta%2boDCVyOGZxStAK%2ff4VFMtxiiEYbAmiJxRn3fJhb6el2sJtwRUwkN9VyKIOflD%2fbJ5emFH6CrUmQIGPLfM3t5inuse7BkCqG7TkX%2fB134l3DcFzdtZe%2bHQgP1LjKZsOIonTfSkQe0teyc%2fScIj7e0zF7%2bHitacjIXBTSWcABWtXydPiBL81n9AD6Y75PAsazCcbmrG8CYQsFwXsjRANagHIO%2fvJm1YX1A%2fO14krLy%2fH3rgMkgypGRLdZaqTNpUwW10C0l4AK2Pw24V1tirpb8IroGPGMOLrMphAKlODY0PP%2ffYm%2fAKWs4PfFm8kXdK3NDAjkcaSxNQ%3d%3d"
 }
 
-variable "azure_tenant_id" {
+variable "iso_checksum" {
   type        = string
-  description = "Azure tenant ID for authentication"
-  default     = env("AZURE_TENANT_ID")
+  description = "SHA256 checksum of the Windows 11 Pro ISO"
+  default     = "B56B911BF18A2CEAEB3904D87E7C770BDF92D3099599D61AC2497B91BF190B11"
 }
 
-variable "azure_client_id" {
+variable "vm_name" {
   type        = string
-  description = "Azure service principal client ID"
-  default     = env("AZURE_CLIENT_ID")
+  description = "Name for the virtual machine and output files"
+  default     = "windows-11-pro-custom"
 }
 
-variable "azure_client_secret" {
+variable "disk_size" {
   type        = string
-  description = "Azure service principal client secret"
-  default     = env("AZURE_CLIENT_SECRET")
-  sensitive   = true
+  description = "Size of the virtual disk (e.g., 40G)"
+  default     = "50G"
 }
 
-variable "resource_group_name" {
+variable "memory" {
   type        = string
-  description = "Azure resource group name for image storage"
-  default     = "rg-packer-images"
+  description = "Amount of RAM for the VM (in MB)"
+  default     = "4096"
 }
 
-variable "location" {
+variable "cpus" {
   type        = string
-  description = "Azure region where resources will be created"
-  default     = "East US"
+  description = "Number of CPU cores for the VM"
+  default     = "2"
 }
 
 # Define the source configuration for the Windows 11 Pro base image
-# This specifies which Azure marketplace image to use as the foundation
-source "azure-arm" "windows_11_pro" {
-  # Authentication configuration using service principal
-  subscription_id = var.azure_subscription_id
-  tenant_id       = var.azure_tenant_id
-  client_id       = var.azure_client_id
-  client_secret   = var.azure_client_secret
+# This specifies the QEMU/KVM virtualization settings for building the image
+source "qemu" "windows_11_pro" {
+  # ISO configuration - Windows 11 Pro installation media
+  iso_url      = var.iso_url
+  iso_checksum = var.iso_checksum
 
-  # Resource configuration - where to create temporary resources during build
-  managed_image_resource_group_name = var.resource_group_name
-  managed_image_name               = "windows-11-pro-${formatdate("YYYY-MM-DD-hhmm", timestamp())}"
-  location                        = var.location
-
-  # Base image configuration - Windows 11 Pro 23H2 from Microsoft
-  # These values specify the exact marketplace image to use
-  image_publisher = "MicrosoftWindowsDesktop"
-  image_offer     = "Windows-11"
-  image_sku       = "win11-23h2-pro"
-  image_version   = "latest"
-
-  # Virtual machine configuration for the build process
-  # These settings determine the temporary VM used to customize the image
-  vm_size         = "Standard_D2s_v3"  # 2 vCPUs, 8GB RAM - sufficient for most customizations
-  os_type         = "Windows"
-
-  # WinRM configuration for remote connectivity during provisioning
-  # This enables Packer to connect to the Windows VM and run provisioning scripts
-  communicator     = "winrm"
-  winrm_use_ssl    = true
-  winrm_insecure   = true
-  winrm_timeout    = "10m"
-  winrm_username   = "packer"
-
-  # Azure-specific settings for image creation
-  # These control how the final image is stored and tagged
-  managed_image_storage_account_type = "Premium_LRS"
+  # Virtual machine configuration
+  vm_name      = var.vm_name
+  memory       = var.memory
+  cpus         = var.cpus
+  disk_size    = var.disk_size
   
-  # Tags for resource management and cost tracking
-  azure_tags = {
-    Environment = "Production"
-    Project     = "Windows11ProFactory"
-    CreatedBy   = "Packer"
-    CreatedOn   = formatdate("YYYY-MM-DD", timestamp())
-  }
+  # Output configuration
+  output_directory = "output-windows-custom"
+  
+  # QEMU-specific settings
+  accelerator = "kvm"
+  qemu_binary = "qemu-system-x86_64"
+  
+  # Network configuration for provisioning
+  net_device = "virtio-net"
+  
+  # Disk and boot configuration
+  disk_interface   = "virtio"
+  disk_compression = true
+  format          = "qcow2"
+  
+  # Boot configuration
+  boot_wait = "3m"
+  boot_command = [
+    # Boot commands will be added here for unattended installation
+    # This requires an autounattend.xml file for Windows automation
+  ]
+
+  # Communication configuration for provisioning
+  communicator = "winrm"
+  winrm_username = "Administrator"
+  winrm_password = "packer"
+  winrm_timeout = "12h"
+  winrm_use_ssl = false
+  winrm_insecure = true
+  winrm_use_ntlm = true
+  
+  # Shutdown configuration
+  shutdown_command = "shutdown /s /t 10 /f /d p:4:1 /c \"Packer Shutdown\""
+  shutdown_timeout = "15m"
 }
 
 # Define the build configuration that orchestrates the provisioning process
@@ -110,16 +111,16 @@ build {
   name = "windows-11-pro-build"
   
   # Reference the source configuration defined above
-  sources = ["source.azure-arm.windows_11_pro"]
+  sources = ["source.qemu.windows_11_pro"]
 
   # PowerShell provisioner - executes Windows-specific configuration scripts
   # This runs first to handle Windows-native tasks and tool installations
   provisioner "powershell" {
     # Execute the common tools installation script
-    script = "provisioning/powershell/install-common-tools.ps1"
+    script = "../scripts/prepare-windows.ps1"
     
     # Execution policy settings for security
-    execution_policy = "Bypass"
+    execution_policy = "bypass"
     
     # Timeout configuration to prevent hanging builds
     timeout = "30m"
@@ -129,7 +130,7 @@ build {
   # This runs after PowerShell to apply configuration management practices
   provisioner "ansible" {
     # Path to the Ansible playbook
-    playbook_file = "provisioning/ansible/playbook.yml"
+    playbook_file = "../ansible/playbook.yml"
     
     # Connection configuration for Windows targets
     use_proxy = false
@@ -146,6 +147,19 @@ build {
       "ANSIBLE_HOST_KEY_CHECKING=False",
       "ANSIBLE_SSH_RETRIES=5"
     ]
+  }
+
+  # PowerShell provisioner - finalizes the image preparation
+  # This runs last to clean up and prepare for Sysprep
+  provisioner "powershell" {
+    # Execute the image finalization script
+    script = "../scripts/finalize-windows.ps1"
+    
+    # Execution policy settings for security
+    execution_policy = "bypass"
+    
+    # Timeout configuration - Sysprep process can take time
+    timeout = "60m"
   }
 
   # Post-processor for image cleanup and optimization (optional)

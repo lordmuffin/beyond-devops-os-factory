@@ -1,0 +1,18 @@
+---
+# Main task file for chocolatey-packages role
+# This role dynamically installs Chocolatey packages from an external list file
+
+- name: Install packages from list
+  win_chocolatey:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ lookup('file', '../packages.txt').splitlines() }}"
+  when: item | length > 0  # Skip empty lines
+  register: choco_install_result
+  
+# Optional: Display installation results for debugging
+- name: Display installation results
+  debug:
+    msg: "Package {{ item.item }} installation result: {{ 'Success' if item.rc == 0 else 'Failed' }}"
+  loop: "{{ choco_install_result.results }}"
+  when: choco_install_result is defined and item is not skipped

@@ -1,0 +1,105 @@
+name: Build Custom Windows Image
+
+# Trigger the workflow on push to main branch when specific directories change
+# or allow manual workflow dispatch
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'packer/**'
+      - 'scripts/**'
+      - 'ansible/**'
+  workflow_dispatch:
+
+# Ensure only one build runs per branch at a time
+# Cancel any in-progress runs when a new one starts
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Windows Image via QEMU
+    runs-on: ubuntu-latest
+    
+    # Set minimal required permissions for security
+    permissions:
+      contents: read
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup QEMU/KVM virtualization environment
+      # Install necessary packages for running virtualized Windows builds
+      - name: Setup QEMU
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qemu-system-x86 \
+            qemu-utils \
+            libvirt-daemon-system \
+            libvirt-clients \
+            bridge-utils \
+            cpu-checker
+          
+          # Enable KVM acceleration if available
+          sudo modprobe kvm
+          sudo chmod 666 /dev/kvm || echo "KVM not available, falling back to software emulation"
+          
+          # Verify QEMU installation
+          qemu-system-x86_64 --version
+
+      # Step 3: Install HashiCorp Packer
+      - name: Setup Packer
+        uses: hashicorp/setup-packer@main
+
+      # Step 4: Cache Packer plugins to speed up subsequent runs
+      # This prevents re-downloading plugins on every workflow run
+      - name: Cache Packer Plugins
+        uses: actions/cache@v4
+        with:
+          path: ~/.packer.d/plugins
+          key: ${{ runner.os }}-packer-plugins-${{ hashFiles('packer/*.pkr.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-packer-plugins-
+
+      # Step 5: Initialize Packer and install required plugins
+      - name: Packer Init
+        run: |
+          cd packer
+          packer init .
+
+      # Step 6: Validate Packer configuration for syntax errors
+      - name: Packer Validate
+        run: |
+          cd packer
+          packer validate .
+
+      # Step 7: Build the Windows image
+      # Note: Any secrets (API keys, passwords, etc.) should be passed via env block
+      # Example: env:
+      #   PACKER_VAR_windows_password: ${{ secrets.WINDOWS_PASSWORD }}
+      #   PACKER_VAR_api_key: ${{ secrets.HYPERVISOR_API_KEY }}
+      - name: Packer Build
+        run: |
+          cd packer
+          packer build .
+        env:
+          # Add any required environment variables or secrets here
+          PACKER_LOG: 1
+          # Example secret usage (uncomment and configure as needed):
+          # PACKER_VAR_windows_password: ${{ secrets.WINDOWS_PASSWORD }}
+
+      # Step 8: Upload the built image as a workflow artifact
+      # This allows downloading the image after the workflow completes
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-image
+          path: packer/output-windows-custom/
+          # Keep artifacts for 30 days (adjust as needed)
+          retention-days: 30
+        # Only upload if build was successful
+        if: success()
