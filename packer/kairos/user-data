@@ -36,6 +36,7 @@ autoinstall:
   ssh:
     install-server: true
     allow-pw: true
+    pwauth: true
     authorized-keys: []
     
   # Package installation
@@ -52,6 +53,10 @@ autoinstall:
     - echo 'kairos ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/kairos
     - chmod 440 /target/etc/sudoers.d/kairos
     - systemctl enable docker
+    - systemctl enable ssh
+    - echo 'PasswordAuthentication yes' >> /target/etc/ssh/sshd_config
+    - echo 'PermitRootLogin no' >> /target/etc/ssh/sshd_config
+    - echo 'PubkeyAuthentication yes' >> /target/etc/ssh/sshd_config
     
   # Reboot after installation
   power_state:

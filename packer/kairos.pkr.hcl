@@ -138,6 +138,7 @@ source "qemu" "kairos_iso" {
   ssh_username = "kairos"
   ssh_password = "kairos"
   ssh_timeout  = "30m"
+  ssh_wait_timeout = "30m"
 
   # Shutdown configuration
   shutdown_command = "sudo shutdown -P now"
