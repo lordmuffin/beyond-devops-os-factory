@@ -88,7 +88,7 @@ source "docker" "kairos_custom" {
 source "qemu" "kairos_iso" {
   # Use a minimal Linux ISO as base for bootable image creation
   iso_url      = "https://releases.ubuntu.com/24.04/ubuntu-24.04.3-live-server-amd64.iso"
-  iso_checksum = "sha256:9bc6028870aef3f74f893e18536136778775e67f1db59d6f6070d24b4eb41725"
+  iso_checksum = "sha256:c3514bf0056180d09376462a7a1b4f213c1d6e8ea67fae5c25099c6fd3d8274b"
 
   # Virtual machine configuration for building
   vm_name   = "kairos-builder"
