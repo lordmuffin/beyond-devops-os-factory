@@ -26,7 +26,11 @@ spec:
     # Enterprise monitoring and observability
     - quay.io/kairos/packages:system-upgrade-controller
     - quay.io/kairos/packages:cert-manager
-    
+    # Add your bundles here
+    - quay.io/kairos/packages:prometheus
+    - quay.io/kairos/packages:grafana
+    - quay.io/kairos/packages:longhorn
+
   # Cloud configuration for the built images
   cloudConfig: |
     #cloud-config

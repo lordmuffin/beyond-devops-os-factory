@@ -265,10 +265,31 @@ git push origin main
 2. **Select "Build Kairos Images with Factory Action"**
 3. **Click "Run workflow"**
 4. **Configure parameters**:
-   - Version: `1.2.0`
+   - Version: `1.2.0` (or leave blank for auto-generated version)
    - Base image: `ubuntu:22.04` or `ubuntu:24.04`
    - Architecture: `amd64` or `arm64`
 5. **Click "Run workflow"** button
+
+#### Semantic Versioning with Git Tags
+
+This project uses automatic semantic versioning:
+
+**Development Builds**: Push commits → automatic dev versions (e.g., `v1.0.0-dev.abc123`)
+```bash
+git add .
+git commit -m "Add custom bundles"
+git push origin main
+# → Builds version: v1.0.0-dev.abc123
+```
+
+**Official Releases**: Create git tags → official versions (e.g., `v1.1.0`)
+```bash
+git tag v1.1.0 -m "Release v1.1.0: Add monitoring bundles"
+git push origin v1.1.0  
+# → Builds version: v1.1.0 (creates GitHub release)
+```
+
+For detailed versioning guidelines, see [VERSION.md](VERSION.md).
 
 ### Build Monitoring
 
