@@ -6,12 +6,15 @@ install:
   device: "auto"
   reboot: true
 
-hostname: kairoslab-{{ trunc 4 .MachineID }}
+hostname: kairoslab-${machine_id:0:4}
 users:
 - name: kairos
-  passwd: kairos
+  passwd: "$6$Sqyu7BZr/2GTocMy$tBSwS0DfdpVV78u1vFwkZeUvBd751T..wASH8Tp3HqJd2lpZKAQDKxVK3FH5eWSCMpVYdmOc3N84/AGiSFXTF0"
   groups:
     - admin
+    - wheel
+    - sudo
+  lock_passwd: false
   ssh_authorized_keys:
   - github:lordmuffin
 

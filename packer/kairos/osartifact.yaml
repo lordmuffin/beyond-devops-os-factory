@@ -34,14 +34,17 @@ spec:
   # Cloud configuration for the built images
   cloudConfig: |
     #cloud-config
-    hostname: kairos-enterprise-{{ trunc 4 .MachineID }}
+    hostname: kairos-enterprise-${machine_id:0:4}
     
     users:
     - name: kairos
-      passwd: kairos
+      passwd: "$6$Sqyu7BZr/2GTocMy$tBSwS0DfdpVV78u1vFwkZeUvBd751T..wASH8Tp3HqJd2lpZKAQDKxVK3FH5eWSCMpVYdmOc3N84/AGiSFXTF0"
       groups:
         - admin
         - docker
+        - wheel
+        - sudo
+      lock_passwd: false
       ssh_authorized_keys:
       - github:lordmuffin
     
