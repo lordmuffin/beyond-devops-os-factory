@@ -67,24 +67,42 @@ jobs:
             echo "Using git tag version: $VERSION"
           else
             # This is not a tagged commit - generate development version
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
             COMMIT_COUNT=$(git rev-list --count HEAD)
-            # Extract base version and increment patch for development
-            BASE_VERSION="${LATEST_TAG#v}"
-            IFS='.' read -ra VERSION_PARTS <<< "$BASE_VERSION"
-            MAJOR=${VERSION_PARTS[0]}
-            MINOR=${VERSION_PARTS[1]}
-            PATCH=${VERSION_PARTS[2]:-0}
-            # Increment patch and add development suffix
-            NEW_PATCH=$((PATCH + 1))
-            VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-alpha.${COMMIT_COUNT}"
+            # Check if we have any tags at all
+            if git tag -l | grep -q .; then
+              LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null)
+              BASE_VERSION="${LATEST_TAG#v}"
+              # Parse version components
+              if [[ "$BASE_VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+                MAJOR="${BASH_REMATCH[1]}"
+                MINOR="${BASH_REMATCH[2]}"
+                PATCH="${BASH_REMATCH[3]}"
+                NEW_PATCH=$((PATCH + 1))
+                VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-alpha.${COMMIT_COUNT}"
+              else
+                # Fallback if tag parsing fails
+                VERSION="1.0.1-alpha.${COMMIT_COUNT}"
+              fi
+            else
+              # No tags exist - start from 1.0.0
+              VERSION="1.0.1-alpha.${COMMIT_COUNT}"
+            fi
             IS_RELEASE="false"
             echo "Generated development version: $VERSION"
+          fi
+          
+          # Validate version format
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[0-9]+)?)?$ ]]; then
+            echo "ERROR: Generated version '$VERSION' is not valid semver format"
+            exit 1
           fi
           
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is_release=$IS_RELEASE" >> $GITHUB_OUTPUT
           echo "Final version: $VERSION (release: $IS_RELEASE)"
+          echo "DEBUG: Raw version output: '$VERSION'"
+          echo "DEBUG: Version length: ${#VERSION}"
+          echo "DEBUG: Semver validation: PASSED"
 
   build-iso:
     name: Build Kairos ISO
