@@ -21,8 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Simplified development version format for Kairos Factory Action compatibility
-- Changed from complex version strings to simple semantic versions (e.g., 1.0.0-dev.123)
+- Changed from complex version strings to standard semantic versions (e.g., 1.0.1-alpha.123)
 - Updated release tag generation for cleaner version handling
+- Use proper semantic versioning pre-release format (alpha) instead of custom dev suffix
 
 ## [1.0.0] - 2024-01-XX (Upcoming)
 

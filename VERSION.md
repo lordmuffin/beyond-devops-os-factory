@@ -9,12 +9,12 @@ This project uses **Semantic Versioning** (SemVer) with automatic version genera
 ### Version Format
 
 - **Release versions**: `v1.0.0`, `v1.2.1`, `v2.0.0`
-- **Development versions**: `v1.0.0-dev.abc123`, `v0.0.0-dev.def456`
+- **Development versions**: `v1.0.1-alpha.123`, `v1.1.1-alpha.456`
 
 ### How It Works
 
 1. **Tagged commits** → Official release versions (e.g., `v1.2.0`)
-2. **Untagged commits** → Development versions (e.g., `v1.0.0-dev.abc123`)
+2. **Untagged commits** → Development versions (e.g., `v1.0.1-alpha.123`)
 3. **Manual builds** → User-specified version (via workflow dispatch)
 
 ## Creating Releases
@@ -29,7 +29,7 @@ git add .
 git commit -m "Add new feature"
 git push origin main
 
-# → Builds version: v1.0.0-dev.abc123
+# → Builds version: v1.0.1-alpha.123
 ```
 
 ### 2. Official Release Workflow
@@ -120,7 +120,7 @@ git push origin v1.2.0-rc.1
 | Git State | Generated Version | Release Type | Artifacts |
 |-----------|------------------|---------------|-----------|
 | `git tag v1.0.0` | `v1.0.0` | Official Release | ✅ GitHub Release |
-| Untagged commit | `v1.0.0-dev.abc123` | Development | ✅ Workflow Artifacts |
+| Untagged commit | `v1.0.1-alpha.123` | Development | ✅ Workflow Artifacts |
 | Manual: `1.2.0-beta.1` | `v1.2.0-beta.1` | Official Release | ✅ GitHub Release |
 | `git tag v2.0.0-rc.1` | `v2.0.0-rc.1` | Official Release | ✅ GitHub Release |
 
