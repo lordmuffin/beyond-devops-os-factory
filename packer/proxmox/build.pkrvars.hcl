@@ -1,0 +1,7 @@
+proxmox_api_url = "https://192.168.1.14:8006/api2/json"
+proxmox_api_token_id = "root@pam!packer"
+proxmox_api_token_secret = "f1418ea6-5edd-4da1-babf-bc1848cd9f78"
+proxmox_node = "pve2"
+ssh_username = "packer"
+ssh_password = "packer"
+vm_name = "kairos-base-template"

@@ -1,0 +1,212 @@
+# AuroraBoot Configuration for Proxmox Kairos Deployment
+# This file configures AuroraBoot for automated Kairos deployment
+
+# AuroraBoot version
+auroraboot_version: "v0.8.1"
+
+# Kairos artifact configuration
+artifact:
+  # GitHub repository for Kairos images
+  repository: "your-org/beyond-devops-os-factory"  # Update with your repo
+  
+  # Version to deploy (latest, v1.0.0, etc.)
+  version: "latest"
+  
+  # Preferred image formats (in order of preference)
+  formats:
+    - "iso"
+    - "raw" 
+    - "qcow2"
+  
+  # Architecture
+  arch: "amd64"
+
+# Network configuration
+network:
+  # Enable network boot
+  enabled: true
+  
+  # Interface to use for PXE boot
+  interface: "auto"
+  
+  # DHCP configuration
+  dhcp:
+    enabled: true
+    proxy_dhcp: true
+  
+  # Network range for target VMs (optional)
+  # subnet: "192.168.1.0/24"
+
+# Cloud configuration
+cloud_config:
+  # Path to cloud-config file
+  file: "./auroraboot/cloud-config.yaml"
+  
+  # Enable templating in cloud-config
+  templating: true
+  
+  # Template variables
+  vars:
+    network_bridge: "vmbr0"
+    vm_memory: "4096"
+    vm_cores: "2"
+
+# Deployment settings
+deployment:
+  # Deployment method: network, iso, or hybrid
+  method: "hybrid"
+  
+  # Auto-detect target devices
+  auto_detect: true
+  
+  # Target device (if not auto-detecting)
+  # device: "/dev/sda"
+  
+  # Reboot after installation
+  auto_reboot: true
+  
+  # Timeout settings (in seconds)
+  timeout:
+    boot: 600
+    install: 1800
+    reboot: 300
+
+# Security settings
+security:
+  # Enable secure boot (if supported)
+  secure_boot: false
+  
+  # Verify image signatures
+  verify_signatures: true
+  
+  # GPG keyring for verification
+  # gpg_keyring: "/etc/auroraboot/keyrings/kairos.gpg"
+
+# Logging configuration
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+  
+  # Log file path
+  file: "/var/log/auroraboot.log"
+  
+  # Enable console logging
+  console: true
+  
+  # Log format: json, text
+  format: "text"
+
+# HTTP server settings (for serving images/configs)
+http_server:
+  # Enable built-in HTTP server
+  enabled: true
+  
+  # Port for HTTP server
+  port: 8080
+  
+  # Document root
+  document_root: "/opt/auroraboot/www"
+  
+  # Enable directory listing
+  directory_listing: false
+
+# Container runtime settings
+container:
+  # Container runtime: docker, podman
+  runtime: "docker"
+  
+  # Pull policy: always, missing, never
+  pull_policy: "missing"
+  
+  # Registry settings
+  registry:
+    # Default registry for AuroraBoot
+    default: "quay.io/kairos"
+    
+    # Authentication (if needed)
+    # auth:
+    #   username: ""
+    #   password: ""
+
+# Proxmox-specific settings
+proxmox:
+  # VM template settings
+  template:
+    # Use existing VM template as base
+    enabled: false
+    # template_id: 9000
+    
+  # Guest agent configuration
+  guest_agent:
+    enabled: true
+    
+  # Cloud-init drive settings
+  cloud_init:
+    enabled: true
+    drive: "ide2"
+
+# Hooks for custom actions
+hooks:
+  # Pre-deployment hook
+  pre_deploy:
+    enabled: false
+    # script: "/opt/auroraboot/hooks/pre-deploy.sh"
+  
+  # Post-deployment hook
+  post_deploy:
+    enabled: true
+    script: "/opt/auroraboot/hooks/post-deploy.sh"
+  
+  # Pre-reboot hook
+  pre_reboot:
+    enabled: false
+    # script: "/opt/auroraboot/hooks/pre-reboot.sh"
+
+# Notification settings
+notifications:
+  # Enable notifications
+  enabled: false
+  
+  # Webhook URL for notifications
+  # webhook_url: "https://hooks.slack.com/your/webhook/url"
+  
+  # Email notifications
+  email:
+    enabled: false
+    # smtp_server: "smtp.example.com"
+    # smtp_port: 587
+    # username: "alerts@example.com"
+    # password: "password"
+    # to: ["admin@example.com"]
+
+# Advanced settings
+advanced:
+  # Parallel deployments
+  parallel_deployments: 1
+  
+  # Retry settings
+  retry:
+    max_attempts: 3
+    delay: 30
+  
+  # Custom kernel parameters
+  kernel_params: []
+  
+  # Custom initramfs modules
+  initramfs_modules: []
+
+# Environment-specific overrides
+environments:
+  development:
+    logging:
+      level: "debug"
+    deployment:
+      auto_reboot: false
+  
+  production:
+    logging:
+      level: "warn"
+    security:
+      verify_signatures: true
+    notifications:
+      enabled: true

@@ -1,0 +1,244 @@
+#cloud-config
+# AuroraBoot Cloud Configuration for Kairos Proxmox Deployment
+# This configuration integrates with your existing Kairos build system
+
+# Hostname with dynamic machine ID suffix (template will be processed by AuroraBoot)
+hostname: kairos-proxmox
+
+# User configuration - matches your existing setup
+users:
+- name: kairos
+  passwd: kairos
+  groups:
+    - admin
+    - docker
+  ssh_authorized_keys:
+  - github:lordmuffin  # Matches your existing config
+
+# K3s configuration - enterprise setup
+k3s:
+  enabled: true
+  args:
+  - --disable=traefik,servicelb,kube-proxy
+  - --flannel-backend=none
+  - --disable-network-policy
+  - --node-taint dedicated=control:NoSchedule
+  - --tls-san=192.168.1.20  # Update this to match your Proxmox network
+  - --cluster-init
+  - --datastore-endpoint=etcd
+
+# KubeVIP for load balancing (optional for single node)
+kubevip:
+  eip: "192.168.1.20"  # Update to match your network
+
+# P2P mesh networking - enterprise configuration
+p2p:
+  disable_dht: false
+  network_token: "proxmox-enterprise-mesh"  # Change this for security
+  vpn:
+    create: false
+    use: false
+  auto:
+    enable: true
+    ha:
+      enable: true
+      master_nodes: 3
+
+# Proxmox-optimized installation
+install:
+  auto: true
+  device: "auto"
+  reboot: true
+  poweroff: false
+
+# Enterprise monitoring and health checks
+write_files:
+- content: |
+    #!/bin/bash
+    # Proxmox VM health check script
+    set -euo pipefail
+    
+    # Check K3s status
+    if ! systemctl is-active --quiet k3s; then
+        echo "ERROR: K3s is not running"
+        exit 1
+    fi
+    
+    # Check Kubernetes API
+    if ! curl -k -s https://localhost:6443/healthz >/dev/null; then
+        echo "ERROR: Kubernetes API not responding"
+        exit 1
+    fi
+    
+    # Check QEMU guest agent
+    if ! systemctl is-active --quiet qemu-guest-agent; then
+        echo "WARNING: QEMU guest agent not running"
+    fi
+    
+    # Check disk space
+    DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+    if [ "$DISK_USAGE" -gt 85 ]; then
+        echo "WARNING: Disk usage is ${DISK_USAGE}%"
+    fi
+    
+    # Check memory usage
+    MEM_USAGE=$(free | grep Mem | awk '{printf "%.0f", ($3/$2)*100}')
+    if [ "$MEM_USAGE" -gt 90 ]; then
+        echo "WARNING: Memory usage is ${MEM_USAGE}%"
+    fi
+    
+    echo "Kairos Proxmox VM health check: OK"
+    echo "K3s: $(systemctl is-active k3s)"
+    echo "Disk usage: ${DISK_USAGE}%"
+    echo "Memory usage: ${MEM_USAGE}%"
+  path: /usr/local/bin/proxmox-health-check.sh
+  permissions: "0755"
+  owner: root:root
+
+- content: |
+    # Proxmox VM compliance configuration
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: proxmox-compliance
+      namespace: kube-system
+    data:
+      deployment-type: "proxmox-vm"
+      provisioned-by: "auroraboot"
+      enterprise-mode: "enabled"
+      security-hardening: "enabled"
+      monitoring: "enabled"
+  path: /etc/kairos/proxmox-compliance.yaml
+  permissions: "0644"
+  owner: root:root
+
+- content: |
+    # Proxmox-specific Kairos configuration
+    apiVersion: v1
+    kind: Secret
+    metadata:
+      name: kairos-proxmox-config
+      namespace: kube-system
+    type: Opaque
+    stringData:
+      vm-platform: "proxmox"
+      deployment-method: "auroraboot"
+      build-source: "github-actions"
+      network-config: "dhcp"
+  path: /etc/kairos/proxmox-secret.yaml
+  permissions: "0600"
+  owner: root:root
+
+- content: |
+    [Unit]
+    Description=Proxmox VM Health Check Timer
+    Requires=proxmox-health.service
+    
+    [Timer]
+    OnCalendar=*:0/5
+    Persistent=true
+    
+    [Install]
+    WantedBy=timers.target
+  path: /etc/systemd/system/proxmox-health.timer
+  permissions: "0644"
+  owner: root:root
+
+- content: |
+    [Unit]
+    Description=Proxmox VM Health Check Service
+    After=k3s.service
+    
+    [Service]
+    Type=oneshot
+    ExecStart=/usr/local/bin/proxmox-health-check.sh
+    User=root
+    StandardOutput=journal
+    StandardError=journal
+  path: /etc/systemd/system/proxmox-health.service
+  permissions: "0644"
+  owner: root:root
+
+# Proxmox-optimized services
+systemd:
+  enable:
+    - k3s
+    - docker
+    - qemu-guest-agent
+    - proxmox-health.timer
+
+# Network configuration for Proxmox
+network:
+  version: 2
+  ethernets:
+    ens18:  # Default Proxmox VM interface
+      dhcp4: true
+      dhcp6: false
+      optional: false
+
+# Enterprise initialization commands
+runcmd:
+- systemctl daemon-reload
+- systemctl enable proxmox-health.timer
+- systemctl start proxmox-health.timer
+- systemctl enable qemu-guest-agent
+- systemctl start qemu-guest-agent
+- chmod +x /usr/local/bin/proxmox-health-check.sh
+
+# Apply Kubernetes configurations after K3s is ready
+- |
+  #!/bin/bash
+  # Wait for K3s to be ready then apply configurations
+  while ! kubectl get nodes >/dev/null 2>&1; do
+    echo "Waiting for K3s to be ready..."
+    sleep 10
+  done
+  
+  # Apply compliance and configuration
+  kubectl apply -f /etc/kairos/proxmox-compliance.yaml || true
+  kubectl apply -f /etc/kairos/proxmox-secret.yaml || true
+  
+  # Label node with Proxmox-specific labels
+  NODE_NAME=$(kubectl get nodes -o jsonpath='{.items[0].metadata.name}')
+  kubectl label node "$NODE_NAME" node.kairos.io/platform=proxmox --overwrite || true
+  kubectl label node "$NODE_NAME" node.kairos.io/deployment=auroraboot --overwrite || true
+  kubectl label node "$NODE_NAME" node.kairos.io/vm-type=proxmox --overwrite || true
+
+# Package installation (if needed)
+packages:
+- qemu-guest-agent
+- curl
+- jq
+- htop
+
+# Timezone and locale
+timezone: UTC
+locale: en_US.UTF-8
+
+# SSH configuration
+ssh_pwauth: true
+disable_root: false
+ssh_authorized_keys:
+- github:lordmuffin
+
+# Growpart configuration for dynamic disk expansion
+growpart:
+  mode: auto
+  devices:
+    - "/"
+
+# Cloud-init final message
+final_message: |
+  Kairos OS deployment on Proxmox completed successfully!
+  
+  System Information:
+  - Platform: Proxmox VM
+  - Deployment: AuroraBoot
+  - Kubernetes: K3s enabled
+  - Health monitoring: Enabled
+  
+  Access:
+  - SSH: ssh kairos@<vm-ip>
+  - Kubeconfig: /etc/rancher/k3s/k3s.yaml
+  
+  Health check: /usr/local/bin/proxmox-health-check.sh

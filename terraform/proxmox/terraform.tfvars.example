@@ -1,0 +1,39 @@
+# Proxmox connection configuration
+proxmox_api_url      = "https://your-proxmox-server:8006/api2/json"
+proxmox_api_token    = "user@realm!tokenname=your-secret-token-here"
+proxmox_api_insecure = false  # Set to true if using self-signed certificates
+proxmox_ssh_username = "root"
+
+# Proxmox node configuration
+proxmox_node_name = "pve"  # Change to your Proxmox node name
+
+# VM configuration
+vm_name        = "kairos-k3s-01"
+vm_description = "Enterprise Kairos OS with K3s cluster"
+vm_cpu_cores   = 4
+vm_cpu_sockets = 1
+vm_memory      = 8192  # 8GB RAM
+vm_disk_size   = "64G"
+vm_storage     = "local-lvm"  # Change to your storage pool
+
+# Network configuration
+vm_network_bridge = "vmbr0"    # Change to your network bridge
+vm_network_model  = "virtio"
+vm_network_vlan   = null       # Set VLAN ID if needed
+
+# VM lifecycle
+vm_on_boot    = true
+vm_protection = false  # Set to true for production VMs
+vm_tags       = ["kairos", "k3s", "enterprise", "terraform"]
+
+# Boot configuration
+vm_boot_order = ["order=scsi0", "order=ide2"]
+
+# AuroraBoot configuration
+auroraboot_enabled           = true
+auroraboot_cloud_config_path = "./auroraboot/cloud-config.yaml"
+
+# Kairos image configuration
+kairos_github_repo    = "your-org/beyond-devops-os-factory"  # Replace with your repo
+kairos_image_version  = ""  # Leave empty for latest, or specify version like "v1.2.0"
+kairos_iso_path       = "local:iso/kairos-custom.iso"  # Path to ISO on Proxmox

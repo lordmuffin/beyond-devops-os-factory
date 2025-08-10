@@ -1,0 +1,72 @@
+#cloud-config
+autoinstall:
+  version: 1
+  
+  # Locale and keyboard
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+    variant: ""
+  
+  # Network configuration
+  network:
+    network:
+      version: 2
+      ethernets:
+        ens18:
+          dhcp4: true
+          dhcp-identifier: mac
+  
+  # Storage configuration
+  storage:
+    layout:
+      name: lvm
+      sizing-policy: all
+    
+  # User configuration
+  identity:
+    hostname: kairos-base-template
+    username: packer
+    password: "$6$rounds=4096$salted$6cPbGFaGaUJrY4AHjmrFTh5JuG3I4mPHGfX5FYZi5dNvMz2P4sG8.KpJa6Q8ZDiF8Gc9Tq4yB2Lm7Xn5C9RtG/"  # password: packer
+  
+  # SSH configuration
+  ssh:
+    install-server: true
+    authorized-keys: []
+    allow-pw: true
+  
+  # Package configuration
+  packages:
+    - openssh-server
+    - curl
+    - wget
+    - ca-certificates
+    - gnupg
+    - lsb-release
+    - apt-transport-https
+    - software-properties-common
+    - cloud-init
+    - cloud-guest-utils
+    - cloud-initramfs-growroot
+  
+  # Disable automatic updates during installation
+  updates: security
+  
+  # Late commands to run after installation
+  late-commands:
+    # Enable SSH password authentication temporarily for Packer
+    - sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /target/etc/ssh/sshd_config
+    - sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /target/etc/ssh/sshd_config
+    
+    # Configure cloud-init for template use
+    - echo 'datasource_list: [NoCloud, ConfigDrive, OpenStack, Ec2, Azure, GCE, None]' > /target/etc/cloud/cloud.cfg.d/90_dpkg.cfg
+    
+    # Clean up APT
+    - curtin in-target --target=/target -- apt-get clean
+    
+    # Configure systemd for faster boot
+    - curtin in-target --target=/target -- systemctl set-default multi-user.target
+    
+    # Install QEMU guest agent
+    - curtin in-target --target=/target -- apt-get install -y qemu-guest-agent
+    - curtin in-target --target=/target -- systemctl enable qemu-guest-agent

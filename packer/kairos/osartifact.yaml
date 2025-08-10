@@ -53,13 +53,13 @@ spec:
       - --flannel-backend=none
       - --disable-network-policy
       - --node-taint dedicated=control:NoSchedule
-      - --tls-san=192.168.1.20
+      - --tls-san=192.168.10.20
       - --cluster-init
       - --datastore-endpoint=etcd
     
     # KubeVIP for load balancing
     kubevip:
-      eip: "192.168.1.20"
+      eip: "192.168.10.20"
     
     # P2P mesh networking configuration
     p2p:
