@@ -78,21 +78,21 @@ jobs:
                 MINOR="${BASH_REMATCH[2]}"
                 PATCH="${BASH_REMATCH[3]}"
                 NEW_PATCH=$((PATCH + 1))
-                VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}-alpha.${COMMIT_COUNT}"
+                VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
               else
                 # Fallback if tag parsing fails
-                VERSION="1.0.1-alpha.${COMMIT_COUNT}"
+                VERSION="1.0.1"
               fi
             else
               # No tags exist - start from 1.0.0
-              VERSION="1.0.1-alpha.${COMMIT_COUNT}"
+              VERSION="1.0.1"
             fi
             IS_RELEASE="false"
             echo "Generated development version: $VERSION"
           fi
           
           # Validate version format
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+(\.[0-9]+)?)?$ ]]; then
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "ERROR: Generated version '$VERSION' is not valid semver format"
             exit 1
           fi
@@ -159,7 +159,7 @@ jobs:
         id: tag
         run: |
           VERSION="${{ needs.generate-version.outputs.version }}"
-          if [[ "$VERSION" == *"-alpha."* ]]; then
+          if [[ "${{ needs.generate-version.outputs.is_release }}" == "false" ]]; then
             # Development version - use timestamp for uniqueness
             TAG="kairos-dev-${VERSION}-$(date +'%Y%m%d-%H%M%S')"
           else
