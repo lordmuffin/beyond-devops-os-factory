@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] - 2025-08-10
+
+### Fixed
+- **Login Credentials**: Fixed plaintext passwords with proper SHA512 hashing in cloud-config files
+- **Template Syntax**: Corrected template syntax from Go templates ({{ }}) to cloud-init format (${})
+- **User Privileges**: Added required admin groups (wheel, sudo) for proper privilege escalation
+- **Authentication**: Enabled password authentication with lock_passwd: false setting
+- **GitHub Actions Workflow**: Removed unsupported qcow2 build parameter causing validation errors
+
+### Added
+- **Login Validation Test**: Comprehensive test script to validate Kairos VM login credentials
+- **Authentication Testing**: Tests for SSH key auth, password auth, connectivity, and user permissions
+- **Cloud-config Validation**: Automated validation to catch common configuration errors
+- **Individual Image Files**: GitHub releases now include downloadable ISO and RAW files with checksums
+
+### Changed
+- **Release Artifacts**: Enhanced release documentation with detailed usage instructions for each image format
+- **Cloud Configuration**: Updated both osartifact.yaml and cloud-config.yaml for consistency
+- **Build Process**: Workflow now properly uploads individual image files to GitHub releases
+
+### Security
+- **Password Security**: Replaced plaintext passwords with SHA512 hashed passwords
+- **Authentication Hardening**: Improved user account security with proper group assignments
+
+## [1.0.1] - 2025-08-10
+
 ### Added
 - Automatic semantic versioning with git tags
 - Dynamic version generation based on git repository state
