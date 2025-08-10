@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release creation only occurs for official tagged versions
 - Improved release notes with version type indicators
 
+### Fixed
+- Simplified development version format for Kairos Factory Action compatibility
+- Changed from complex version strings to simple semantic versions (e.g., 1.0.0-dev.123)
+- Updated release tag generation for cleaner version handling
+
 ## [1.0.0] - 2024-01-XX (Upcoming)
 
 ### Added

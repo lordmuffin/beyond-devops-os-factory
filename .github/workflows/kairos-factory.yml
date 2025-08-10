@@ -66,10 +66,13 @@ jobs:
             IS_RELEASE="true"
             echo "Using git tag version: $VERSION"
           else
-            # This is not a tagged commit - generate development version
-            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            # This is not a tagged commit - generate simple development version
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v1.0.0")
+            COMMIT_COUNT=$(git rev-list --count HEAD)
             SHORT_SHA=$(git rev-parse --short HEAD)
-            VERSION="${LATEST_TAG#v}-dev.${SHORT_SHA}"
+            # Use simple semantic version format: MAJOR.MINOR.PATCH-dev.COMMITS
+            BASE_VERSION="${LATEST_TAG#v}"
+            VERSION="${BASE_VERSION}-dev.${COMMIT_COUNT}"
             IS_RELEASE="false"
             echo "Generated development version: $VERSION"
           fi
@@ -134,10 +137,10 @@ jobs:
         run: |
           VERSION="${{ needs.generate-version.outputs.version }}"
           if [[ "$VERSION" == *"-dev."* ]]; then
-            # Development version - add timestamp
-            TAG="kairos-factory-${VERSION}-$(date +'%Y%m%d-%H%M%S')"
+            # Development version - use timestamp for uniqueness
+            TAG="kairos-dev-${VERSION}-$(date +'%Y%m%d-%H%M%S')"
           else
-            # Release version - use semantic version
+            # Release version - use clean semantic version
             TAG="v${VERSION}"
           fi
           echo "tag=$TAG" >> $GITHUB_OUTPUT
