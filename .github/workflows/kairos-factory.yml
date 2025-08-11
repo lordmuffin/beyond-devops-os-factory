@@ -176,6 +176,31 @@ jobs:
           echo "Downloaded artifacts:"
           find ./artifacts -type f -name "*.iso*" -o -name "*.raw*" | sort
           
+      - name: Check and compress large files
+        run: |
+          echo "Checking file sizes and compressing if necessary..."
+          MAX_SIZE=$((2 * 1024 * 1024 * 1024))  # 2GB in bytes
+          
+          for file in $(find ./artifacts -type f -name "*.iso" -o -name "*.raw"); do
+            SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+            echo "File: $file, Size: $SIZE bytes ($(($SIZE / 1024 / 1024))MB)"
+            
+            if [ $SIZE -gt $MAX_SIZE ]; then
+              echo "File $file exceeds 2GB limit, compressing with xz..."
+              xz -9 -T0 "$file"
+              echo "Compressed: ${file}.xz"
+            fi
+          done
+          
+          # Update checksums for compressed files
+          for compressed in $(find ./artifacts -name "*.xz"); do
+            echo "Generating checksum for $compressed"
+            sha256sum "$compressed" > "${compressed}.sha256"
+          done
+          
+          echo "Final artifact list with sizes:"
+          find ./artifacts -type f \( -name "*.iso*" -o -name "*.raw*" -o -name "*.xz*" \) -exec ls -lh {} \;
+          
       - name: Generate release tag
         id: tag
         run: |
@@ -220,8 +245,12 @@ jobs:
           files: |
             ./artifacts/iso/*.iso
             ./artifacts/iso/*.iso.sha256
+            ./artifacts/iso/*.iso.xz
+            ./artifacts/iso/*.iso.xz.sha256
             ./artifacts/raw/*.raw
             ./artifacts/raw/*.raw.sha256
+            ./artifacts/raw/*.raw.xz
+            ./artifacts/raw/*.raw.xz.sha256
           draft: false
           prerelease: false
         env:
