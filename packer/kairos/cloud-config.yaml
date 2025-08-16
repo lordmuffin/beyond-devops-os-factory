@@ -9,7 +9,7 @@ install:
 hostname: kairoslab-${machine_id:0:4}
 users:
 - name: kairos
-  passwd: "$6$Sqyu7BZr/2GTocMy$tBSwS0DfdpVV78u1vFwkZeUvBd751T..wASH8Tp3HqJd2lpZKAQDKxVK3FH5eWSCMpVYdmOc3N84/AGiSFXTF0"
+  passwd: "$6$Y0MBrwADZ5YIeZ8F$BbanQDMGaH7nQFHG0a.96Q920n8t5tvwFxGOyfLHsdCHmGdEkwmN8yl/PjerZtyKzU8VFhqPdnzmisjEbJsp60"
   groups:
     - admin
     - wheel
