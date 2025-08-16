@@ -120,10 +120,11 @@ cd beyond-devops-os-factory
 
 ```bash
 # Set required environment variables
-export PROXMOX_API_URL="https://your-proxmox-server:8006/api2/json"
-export PROXMOX_API_TOKEN="user@realm!tokenname=your-secret-token"
-export PROXMOX_NODE="pve"  # Your Proxmox node name
-export GITHUB_REPO="your-org/beyond-devops-os-factory"
+export PROXMOX_API_URL="https://192.168.1.37:8006/api2/json"
+export PROXMOX_API_TOKEN='root@pam!kairos=token'
+export PROXMOX_NODE="pve4"  # Your Proxmox node name
+export GITHUB_REPO="lordmuffin/beyond-devops-os-factory"
+export GH_TOKEN="tooken"
 
 # Optional: Save to .env file
 cat > .env << EOF
@@ -232,7 +233,7 @@ beyond-devops-os-factory/
 ├── auroraboot/                 # AuroraBoot configurations
 │   ├── cloud-config.yaml     # Kairos cloud configuration
 │   ├── config.yaml            # AuroraBoot settings
-│   └── deploy-proxmox.sh      # Deployment script
+│   └── build-kairos-iso.sh    # ISO building script
 └── scripts/                   # Automation scripts
     ├── github/                # GitHub integration
     └── proxmox/               # Proxmox deployment
@@ -368,7 +369,7 @@ packer build -var-file=variables.pkr.hcl kairos-base.pkr.hcl
 
 # Manual AuroraBoot deployment
 cd auroraboot
-./deploy-proxmox.sh --name my-vm --version latest
+./build-kairos-iso.sh --name my-vm --version latest
 ```
 
 ### Method 4: CI/CD Integration
@@ -438,7 +439,7 @@ Use PXE boot for bare metal or specific scenarios:
 
 ```bash
 # Configure for network boot
-./auroraboot/deploy-proxmox.sh \
+./auroraboot/build-kairos-iso.sh \
   --method network \
   --name kairos-netboot
 ```
