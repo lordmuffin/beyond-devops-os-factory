@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-08-16
+
+### Added
+- **Enhanced Proxmox Support**: Improved compatibility and configuration for Proxmox VE environments
+- **Proxmox Optimization**: Better disk I/O configuration and guest agent integration
+- **Virtual Machine Templates**: Optimized settings for Proxmox VM template creation
+
+### Changed
+- **Cloud Configuration**: Enhanced cloud-config settings for better Proxmox guest integration
+- **Boot Process**: Improved boot sequence for Proxmox virtual environments
+
 ## [1.0.2] - 2025-08-10
 
 ### Fixed
