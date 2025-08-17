@@ -21,7 +21,7 @@ autoinstall:
   identity:
     hostname: kairos-builder
     username: kairos
-    password: '$6$nSvhkvPEFj9McudL$iLfFq4TTTXbC.rWuYHe4ddZbVaPYYNLzyHRF./kP1S/kWKkDsrM29m8QFcTVG8c6KNZM8lJzOEaOFGtniqLYB1'
+    password: '$6$Y0MBrwADZ5YIeZ8F$BbanQDMGaH7nQFHG0a.96Q920n8t5tvwFxGOyfLHsdCHmGdEkwmN8yl/PjerZtyKzU8VFhqPdnzmisjEbJsp60'
     
   ssh:
     install-server: true
